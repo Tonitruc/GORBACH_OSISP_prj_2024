@@ -2,8 +2,9 @@
 
 #include <stdbool.h>
 #include <ncurses.h>
+#include <menu.h>
 
-#define START_DIR "."
+#define START_DIR "/home/tonitrus/Projects/C"
 
 #define COLS_PERCENT 0.50
 #define ROWS_PERCENT 0.20
@@ -14,8 +15,11 @@
 typedef struct _FILE_PANEL {
     WINDOW* panel;
     char* current_directory;
+    MENU *file_menu;
 } FILE_PANEL;
 
 bool init_file_panel(FILE_PANEL** file_panel, int num);
 bool resize_file_panel(FILE_PANEL* file_panel, int num);
 void show_file_panel(FILE_PANEL *file_panel);
+void load_start_dir(FILE_PANEL* file_panel);
+
