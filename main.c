@@ -1,17 +1,17 @@
 #include <panel.h>
-#include "FILE_PANEL.h"
+#include "file_panel.h"
 #include <signal.h>
 #include <locale.h>
 #include <stdbool.h>
-#include "FILE_TYPES.h"
+#include "file_types.h"
 
 #define MIN_HEIGHT 15
 #define MIN_WIDTH 15
 
 #define AMOUNT_OF_FILE_PANEL 2
 
-FILE_PANEL* first_file_panel;
-FILE_PANEL* second_file_panel;
+File_Panel* first_file_panel;
+File_Panel* second_file_panel;
 
 #define INIT_BASE_WIN init_pair(1, COLOR_WHITE, COLOR_BLACK); attron(COLOR_PAIR(1)); \
 					wbkgd(stdscr, COLOR_PAIR(1)); refresh();  //Set the base style for the main window
@@ -22,8 +22,6 @@ bool init_app();
 
 int main() {
 	init_app();
-	load_start_dir(first_file_panel);
-	load_start_dir(second_file_panel);
 	refresh();
 
 	while(1) {
@@ -69,8 +67,8 @@ bool init_app() {
 	if(!init_file_panel(&first_file_panel, 0) || !init_file_panel(&second_file_panel, 1))
 		return false;
 
-	show_file_panel(first_file_panel);
-	show_file_panel(second_file_panel); 
+	refresh_file_panel(first_file_panel);
+	refresh_file_panel(second_file_panel); 
 	refresh();
 
 	return true;
@@ -83,7 +81,7 @@ bool resize_app() {
 		return false;
 
 	refresh();
-	show_file_panel(first_file_panel);
-	show_file_panel(second_file_panel);
+	refresh_file_panel(first_file_panel);
+	refresh_file_panel(second_file_panel);
 	return true;
 }

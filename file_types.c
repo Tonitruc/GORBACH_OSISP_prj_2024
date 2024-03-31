@@ -1,9 +1,8 @@
-#include "FILE_TYPES.h"
+#include "file_types.h"
 #include <ncurses.h>
 
 List* read_dir(char* path) {
     DIR *dir;
-    struct stat st;
     struct dirent* d;
     List* head = NULL, *tail = NULL;
 

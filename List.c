@@ -112,15 +112,6 @@ void remove_first(List **head, List **tail) {
     free(delete_el);
 }
 
-void print_list(List* head) {
-    int num = 0;
-    while(head != NULL) {
-        printf(RED_COLOR"C_%d;"RESET_COLOR" pid: %d\n", num++, head->data);
-        //printf("{ %d, %d }\n", head->data.first, head->data.second);
-        head = head->next;
-    }
-}
-
 void add_by(List **head, List **tail, char*  data, int (*comparator)(const void* first, const void* second)) {
     List* new_node = (List*)malloc(sizeof(List));
     new_node->next = NULL;

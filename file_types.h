@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <string.h>
 #include "List.h"
 
 typedef enum _FILE_TYPES {
@@ -11,6 +12,6 @@ typedef enum _FILE_TYPES {
     DIRECTORY,
     REGULAR_FILE,
     SYMBOL_LINK,
-} FILE_TYPE;
+} File_Types;
 
  List* read_dir(char* path);
