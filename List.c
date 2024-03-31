@@ -4,15 +4,13 @@
 #include <string.h>
 #include <signal.h>
 
-#define RED_COLOR "\033[1;31m"
-#define RESET_COLOR "\033[0m"
-
-void add_last(List** head, List** tail, char*  data) {
+void add_last(List** head, List** tail, const char*  data) {
     List* new_node = (List*)malloc(sizeof(List));
     new_node->next = NULL;
     new_node->prev = NULL;
-    new_node->data = (char*)calloc(strlen(data) + 1, sizeof(char));
-    strcpy(new_node->data, data);
+    int str_len = strlen(data) + 1;
+    new_node->data = (char*)calloc(str_len, sizeof(char));
+    strncpy(new_node->data, data, str_len);
 
     if(*head == NULL) {
         *head = new_node;
@@ -30,12 +28,13 @@ void add_last(List** head, List** tail, char*  data) {
     }
 }
 
-void add_first(List** head, List** tail, char*  data) {
+void add_first(List** head, List** tail, const char*  data) {
     List* new_node = (List*)malloc(sizeof(List));
     new_node->next = NULL;
     new_node->prev = NULL;
-    new_node->data = (char*)calloc(strlen(data) + 1, sizeof(char));
-    strcpy(new_node->data, data);
+    int str_len = strlen(data) + 1;
+    new_node->data = (char*)calloc(str_len, sizeof(char));
+    strncpy(new_node->data, data, str_len);
 
     if(*head == NULL) {
         *head = new_node;
@@ -112,12 +111,13 @@ void remove_first(List **head, List **tail) {
     free(delete_el);
 }
 
-void add_by(List **head, List **tail, char*  data, int (*comparator)(const void* first, const void* second)) {
+void add_by(List **head, List **tail, const char*  data, int (*comparator)(const void* first, const void* second)) {
     List* new_node = (List*)malloc(sizeof(List));
     new_node->next = NULL;
     new_node->prev = NULL;
-    new_node->data = (char*)calloc(strlen(data) + 1, sizeof(char));
-    strcpy(new_node->data, data);
+    int str_len = strlen(data) + 1;
+    new_node->data = (char*)calloc(str_len, sizeof(char));
+    strncpy(new_node->data, data, str_len);
 
     if(*head == NULL) {
         *head = new_node;
