@@ -14,10 +14,8 @@
 #define COLS_PERCENT 0.50
 #define ROWS_PERCENT 0.10
 
-//#define FILE_PANEL_SIZE(height, width) height = (LINES - ROWS_PERCENT * LINES); width = (COLS - COLS_PERCENT * COLS);   
-//#define PANEL_START_POS(starty, startx, num) starty = ROWS_PERCENT * LINES; startx = 0 + num * COLS * COLS_PERCENT;
-#define FILE_PANEL_SIZE(height, width) height = (LINES - 2); width = (COLS - COLS_PERCENT * COLS);   
-#define PANEL_START_POS(starty, startx, num) starty = 1; startx = 0 + num * COLS * COLS_PERCENT;
+#define FILE_PANEL_SIZE(height, width) height = (LINES - 2); width = (COLS - COLS_PERCENT * COLS)
+#define PANEL_START_POS(starty, startx, num) starty = 1; startx = 0 + num * COLS * COLS_PERCENT
 
 #define FILE_MENU_START_ROW 3
 #define FILE_MENU_START_COL 1

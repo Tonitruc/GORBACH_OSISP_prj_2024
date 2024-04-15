@@ -7,19 +7,20 @@ bool init_file_panel(File_Panel** file_panel, WINDOW* parent_window, int num) {
     *file_panel = (File_Panel*)calloc(1, sizeof(File_Panel));
 
     int height, width, starty, startx;
-	FILE_PANEL_SIZE(height, width)
-	PANEL_START_POS(starty, startx, num)
+	FILE_PANEL_SIZE(height, width);
+	PANEL_START_POS(starty, startx, num);
 
     (*file_panel)->parent_window = parent_window;
     (*file_panel)->panel = derwin(parent_window, height, width, starty, startx);
-    (*file_panel)->current_directory = (wchar_t*)calloc(wcslen(START_DIR) + 1, sizeof(wchar_t));
-    if ((*file_panel)->panel == NULL) {    // checking if the window has not been created
+    if ((*file_panel)->panel == NULL) {    
         return false;
     }
-    keypad((*file_panel)->panel, TRUE);
-    wattron((*file_panel)->panel, COLOR_PAIR(1));
-
+    wbkgdset((*file_panel)->panel , getbkgd(parent_window));
+    
+    (*file_panel)->current_directory = (wchar_t*)calloc(wcslen(START_DIR) + 1, sizeof(wchar_t));
     wcscpy((*file_panel)->current_directory, START_DIR);
+
+    keypad((*file_panel)->panel, TRUE);
 
     MITEM** dir_file = load_dir(*file_panel);
     init_file_menu(*file_panel, dir_file);
@@ -29,22 +30,20 @@ bool init_file_panel(File_Panel** file_panel, WINDOW* parent_window, int num) {
 
 bool resize_file_panel(File_Panel* file_panel, int num)  {
     int height, width, starty, startx;
-    PANEL_START_POS(starty, startx, num)
-    FILE_PANEL_SIZE(height, width)
+    PANEL_START_POS(starty, startx, num);
+    FILE_PANEL_SIZE(height, width);
 
-    wresize(file_panel->panel, height, width);
+    wresize(file_panel->panel, height, width);    //resize main window
     mvwin(file_panel->panel, starty, startx);
     mvderwin(file_panel->panel, starty, startx);
 
-    wresize(file_panel->menu_sub_win, height - FILE_MENU_FORMAT_SIZE_ROW - SPACE_SELECTED_ELEMENT_ROW, 
+    wresize(file_panel->menu_sub_win, height - FILE_MENU_FORMAT_SIZE_ROW - SPACE_SELECTED_ELEMENT_ROW,   //resize subwindow
                 width - FILE_MENU_FORMAT_SIZE_COL);
-
     mvderwin(file_panel->menu_sub_win, FILE_MENU_START_ROW, FILE_MENU_START_COL);
     mvwin(file_panel->menu_sub_win, starty + FILE_MENU_START_ROW, startx + FILE_MENU_START_COL);
+
     resize_menu(file_panel->file_menu);
     werase(file_panel->panel);
-    mvprintw(0, 0 + 50 * num, "%d %d %d %d", height, width, starty, startx);
-    refresh();
 
     return true;
 }
@@ -148,7 +147,8 @@ bool init_file_menu(File_Panel* file_panel, MITEM** items) {
     init_menu_format(file_panel->file_menu, row - FILE_MENU_FORMAT_ROW - SPACE_SELECTED_ELEMENT_ROW, FILE_MENU_FORMAT_COL);
     set_columns_size(file_panel->file_menu, (double*)3, 0.65, 0.15, 0.2);
     set_column_name(file_panel->file_menu, L"Имя", L"Размер", L"Время правки");
-    init_color_slctd_item(file_panel->file_menu, 4);
+    init_color_slctd_item(file_panel->file_menu, MENU_SLCTD_ITEM);
+    file_panel->file_menu->is_sort = true;
 
     return true;
 }
@@ -168,6 +168,7 @@ bool event_handler(File_Panel *file_panel, int key) {
         case '\n': {
             if(change_dir(file_panel)) {
                 print_current_directory(file_panel, true);
+                print_menu(file_panel->file_menu);
             }
             break;
         }
@@ -183,8 +184,13 @@ bool event_handler(File_Panel *file_panel, int key) {
 			else if (mevent.bstate & BUTTON4_PRESSED) { 
                 menu_driver(file_panel->file_menu, REQ_UP_ITEM);
             }
-			else if(mevent.bstate & BUTTON1_PRESSED) {
-				find_click_item(file_panel->file_menu, mevent);
+			else if(mevent.bstate & BUTTON1_RELEASED) {
+				REQ_KEY req_key = find_click_item(file_panel->file_menu, mevent);
+                if(req_key == COLUMN_CLICKED) {
+                    menu_sort(file_panel->file_menu, file_panel->file_menu->sorted_col, wcompare);
+                    unprint_menu(file_panel->file_menu);
+                    print_menu(file_panel->file_menu);
+                } 
 			}
             break;
         }
@@ -192,9 +198,7 @@ bool event_handler(File_Panel *file_panel, int key) {
     }
 
     print_current_file(file_panel, true);
-    print_menu(file_panel->file_menu);
     wrefresh(file_panel->menu_sub_win);
-    wrefresh(file_panel->panel);
 
     return true;
 }
@@ -218,7 +222,7 @@ void print_current_file(File_Panel *file_panel, bool with_clear) {
     CURRENT_FILE_POS(file_panel->panel, y, x);
 
     if(with_clear) {
-        clear_y_str(file_panel->panel, y, 1);
+        clear_y_str(file_panel->panel, y, 1, -1);
     }
 
     if(wcscmp(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string, DIR_RETURN) == 0) {
@@ -248,7 +252,7 @@ void print_current_directory(File_Panel *file_panel, bool with_clear) {
     TAB_SPACE_POS(row, column);
 
     if(with_clear) {
-        clear_y_str(file_panel->panel, row, 1);
+        clear_y_str(file_panel->panel, row, 1, -1);
     }
 
     mvwaddwstr(file_panel->panel, row, column, file_panel->current_directory);
