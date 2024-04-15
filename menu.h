@@ -3,6 +3,7 @@
 #include <ncursesw/ncurses.h>
 #include <wchar.h>
 #include <stdbool.h>
+#include "fwchar.h"
 
 #define BASE_ROW_AMOUNT 1
 #define BASE_COL_AMOUNT 1
@@ -12,9 +13,6 @@
 #define BASE_POINT_SYM '-'
 #define BASE_SEPARATE_SYM L'\u2502'
 #define U_HLINE L'\u2500'
-
-#define COLOR_PAIR_MENU 20
-#define STNDRT_COLOR_MENU_PAIR 21
 
 #define mvwprintwr(win, y, x, format_str, ...) wattron(win, A_REVERSE); mvwprintw(win, y, x, format_str, __VA_ARGS__); wattroff(win, A_REVERSE)
 
@@ -55,6 +53,11 @@ typedef enum _SETTINGS_MENU {
 
 } SETTINGS_MENU;
 
+typedef enum _DIRECTRION_SORT {
+    INCREASING, 
+    DECREASING
+} SORT_DIR;
+
 typedef struct MENU {
     TYPE_MENU type_menu;
     WINDOW* parent_window;
@@ -69,6 +72,9 @@ typedef struct MENU {
     int max_rows; 
     int columns; int rows;
     double* columns_size;
+    bool is_sort;
+    int sorted_col;
+    SORT_DIR direction_sort;
 
     wchar_t sprt_sym;
     chtype slct_sym;
@@ -84,7 +90,9 @@ typedef enum _REQ_KEY {
     REQ_DOWN_ITEM,
     REQ_UP_ITEM,
     REQ_LEFT_ITEM,
-    REQ_RIGHT_ITEM
+    REQ_RIGHT_ITEM,
+    ITEM_CLICKED,
+    COLUMN_CLICKED
 } REQ_KEY;
 
 //-------------Menu items-------------
@@ -117,11 +125,14 @@ void free_menu(MENU *menu);
 void print_menu(MENU* menu);
 void unprint_menu(MENU* menu);
 void menu_driver(MENU* menu, REQ_KEY key);
-bool resize_menu(MENU* menu);
-void menu_str_slctd_color(MENU* win, int y_str, bool is_reversed);
+void resize_menu(MENU* menu);
 void offset_y_items(MENU* menu, int y);
 void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item);
 
 //Mouse events 
-bool find_click_item(MENU* menu, MEVENT event);
+REQ_KEY find_click_item(MENU* menu, MEVENT event);
 void slctd_item_action(MENU* menu);
+int clicked_column(MENU* menu, MEVENT event);
+
+//sort_items
+void menu_sort(MENU* menu, int col, int (*compare)(const void* value_f, const void* value_s));
