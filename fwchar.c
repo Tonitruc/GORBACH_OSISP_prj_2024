@@ -130,3 +130,7 @@ bool wchstrcmp(wchar_t* sourse, wchar_t* wstr, int start, int len) {
 
     return true;
 }
+
+int wcompare(const void* wstr1, const void* wstr2) {
+    return wcscmp((const wchar_t*)wstr1, (const wchar_t*)wstr2);
+}

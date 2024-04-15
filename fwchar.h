@@ -19,3 +19,4 @@ wchar_t* wtime(time_t time);
 char* wchtochs(wchar_t* wstr);
 wchar_t* wsubstring(const wchar_t* wstring, int start, int len);
 bool wchstrcmp(wchar_t* sourse, wchar_t* wstr, int start, int len);
+int wcompare(const void* wstr1, const void* wstr2);
