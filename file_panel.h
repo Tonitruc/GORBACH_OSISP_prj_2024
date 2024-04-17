@@ -6,6 +6,8 @@
 #include "file_types.h"
 #include "fwchar.h"
 #include "winmanip.h"
+#include "file_operation.h"
+#include "message_box.h"
 
 #define START_DIR L"/home/tonitrus"
 #define DIR_RETURN L".."
@@ -34,22 +36,31 @@
 #define TAB_SPACE_POS(row, col) row = 1; col = 1; 
 #define TAB_NAME L"<-ВКЛАДКА"
 
+#define CUR_FILE_SIZE(win) ({ \
+    int size = getmaxx(win) - 4; \
+    size; \
+})
+
 typedef struct _FILE_PANEL {
     WINDOW* panel;
     wchar_t* current_directory;
     MENU *file_menu;
     WINDOW* menu_sub_win;
     WINDOW* parent_window;
-} File_Panel;
+    List* files_info;
+} FILE_PANEL;
 
-bool init_file_panel(File_Panel** file_panel, WINDOW* parent_window, int num);
-bool resize_file_panel(File_Panel* file_panel, int num);
-void refresh_file_panel(File_Panel *file_panel);
-MITEM** load_dir(File_Panel* file_panel);
-bool init_file_menu(File_Panel* file_panel, MITEM** items);
-void print_selected_file_space(File_Panel* file_panel);
-bool event_handler(File_Panel* file_panel, int key);
-void print_current_file(File_Panel *file_panel, bool with_clear);
-void print_tab_space(File_Panel *file_panel);
-void print_current_directory(File_Panel *file_panel, bool with_clear);
+FILE_PANEL* init_file_panel(WINDOW* parent_window, int num);
+bool resize_file_panel(FILE_PANEL* file_panel, int num);
+void refresh_file_panel(FILE_PANEL *file_panel);
+MITEM** load_dir(FILE_PANEL* file_panel);
+bool init_file_menu(FILE_PANEL* file_panel, MITEM** items);
+void print_selected_file_space(FILE_PANEL* file_panel);
+bool event_handler(FILE_PANEL* file_panel, int key);
+void print_current_file(FILE_PANEL *file_panel, bool with_clear);
+void print_tab_space(FILE_PANEL *file_panel);
+void print_current_directory(FILE_PANEL *file_panel, bool with_clear);
+
+//file CRUD
+int del_file(FILE_PANEL* file_panel);
 
