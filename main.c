@@ -131,27 +131,27 @@ bool init_app() {
 
 
 bool resize_app() {
-    wresize(upper_panel->parent_window, 1, getmaxx(stdscr));
-    wresize(upper_panel->sub_window,1, getmaxx(stdscr));
+        wresize(upper_panel->parent_window, 1, getmaxx(stdscr));
+        wresize(upper_panel->sub_window,1, getmaxx(stdscr));
 
-	werase(upper_panel->parent_window);
-    resize_menu(upper_panel);
-	print_menu(upper_panel);
+        werase(upper_panel->parent_window);
+        resize_menu(upper_panel);
+        print_menu(upper_panel);
 
-	resize_file_panel(first_file_panel, 0);
+        resize_file_panel(first_file_panel, 0);
 	resize_file_panel(second_file_panel, 1);
 
-    wresize(lower_panel->parent_window, 1, getmaxx(stdscr));
+        wresize(lower_panel->parent_window, 1, getmaxx(stdscr));
 	mvderwin(lower_panel->parent_window, LINES - 1, 0);
 	mvwin(lower_panel->parent_window, LINES - 1, 0);
 
-    wresize(lower_panel->sub_window, 1, getmaxx(stdscr));
+        wresize(lower_panel->sub_window, 1, getmaxx(stdscr));
 	mvderwin(lower_panel->sub_window, 0, 0);
 	mvwin(lower_panel->sub_window, LINES - 1, 0);
 
 	werase(lower_panel->parent_window);
 
-    resize_menu(lower_panel);
+        resize_menu(lower_panel);
 	print_menu(lower_panel);
 
 	return true;
