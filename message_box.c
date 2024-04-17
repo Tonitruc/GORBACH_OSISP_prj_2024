@@ -30,7 +30,7 @@ void set_color_msg(MSG_BOX* msg_box, short color_pair) {
     wbkgd(msg_box->window, COLOR_PAIR(color_pair));
 }
 
-int show_msg(MSG_BOX* msg) {
+MSG_REQ show_msg(MSG_BOX* msg) {
     MENU* menu;
     if(msg->is_verified) {
         WINDOW* win = derwin(msg->window, 1, msg->width - 4, msg->height - 1, 2);
@@ -61,9 +61,9 @@ int show_msg(MSG_BOX* msg) {
         key = wgetch(msg->window);
         if(key == '\n') {
             if(menu->selected_item == 0) {
-                status = 1;
+                status = ALLOW;
             } else {
-                status = -1;
+                status = CANCEL;
             }
             break;
         } 
