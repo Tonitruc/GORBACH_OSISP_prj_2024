@@ -36,10 +36,8 @@ FILE_TYPE get_file_type(wchar_t* wfull_path) {
                 || wchstrcmp(wfull_path, L".tar", 0, 0)
                 || wchstrcmp(wfull_path, L".gz", 0, 0)
                 || wchstrcmp(wfull_path, L".7zip", 0, 0)) {file_type = ARCHIVE; } 
-
         else { file_type = UNKNOWN_FILE; }
     }
-
     free(full_path);
 
     return file_type;
@@ -55,8 +53,8 @@ List* read_dir(char* path) {
     wchar_t* file_name; wchar_t* full_path;
     time_t edit_time; long size_kb;
     FILE_TYPE file_type;
-    wchar_t* wbuffer;
 
+    wchar_t* wbuffer;
     dir = opendir(path);
     while((d = readdir(dir))) {
         if(strcmp(d->d_name, ".") == 0)
@@ -64,7 +62,6 @@ List* read_dir(char* path) {
 
         file_name = cstowchs(d->d_name);
         full_path = cstowchs(path);
-
 
         char* buffer = (char*)calloc(strlen(d->d_name) + strlen(path) + 2, sizeof(char));
         sprintf(buffer, "%s/%s", path, d->d_name);

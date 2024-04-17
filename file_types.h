@@ -6,9 +6,9 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 #include "fwchar.h"
 #include "List.h"
-#include <stdbool.h>
 #include "file_type_enum.h"
 
  List* read_dir(char* path);
