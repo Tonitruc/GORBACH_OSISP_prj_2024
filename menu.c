@@ -38,8 +38,6 @@ size_t size_items(MITEM** items) {
 
 //-------------Menu Settings-------------
 
-//*********Help function for init menu****************
-
 bool init_menu_win(MENU* menu, WINDOW* pwin) {
     if(pwin == NULL || menu == NULL)
         return false;
@@ -52,6 +50,7 @@ bool init_menu_sub(MENU* menu, WINDOW* subwin) {
     if(subwin == NULL || menu == NULL)
         return false;
 
+    keypad(menu->sub_window, TRUE);
     menu->sub_window = subwin;
     return true;
 }
@@ -61,8 +60,7 @@ bool init_menu_sub(MENU* menu, WINDOW* subwin) {
 void set_sprt_sym(MENU* menu, wchar_t sprt_sym) {
     if(sprt_sym == 0) {
         menu->sprt_sym = BASE_SEPARATE_SYM;
-    } 
-    else {
+    } else {
         menu->sprt_sym = sprt_sym;
     }
 }
@@ -70,16 +68,15 @@ void set_sprt_sym(MENU* menu, wchar_t sprt_sym) {
 void set_slct_sym(MENU* menu, chtype slct_sym) {
     if(slct_sym == 0) {
         menu->slct_sym = BASE_SELECT_SYM;
+    } else {
+        menu->slct_sym = slct_sym;
     }
-
-    menu->slct_sym = slct_sym;
 }
 
 void set_pnt_sym(MENU* menu, chtype pnt_sym) {
     if(pnt_sym == 0) {
         menu->pnt_sym = BASE_POINT_SYM;
-    } 
-    else {
+    } else {
         menu->pnt_sym = pnt_sym;
     }
 }
@@ -102,17 +99,14 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
         return NULL;
     }
 
-    //keypad(menu->parent_window, TRUE);
-    keypad(menu->sub_window, TRUE);
-
     menu->type_menu = type;
     menu->set_menu = set_menu;
 
-    menu->items = items;                        //Should contain null in the end
+    menu->items = items;                        
     menu->amount_items = size_items(items);
     menu->items_action = NULL;
 
-    menu->max_rows = BASE_ROW_AMOUNT;           //Set base grid
+    menu->max_rows = BASE_ROW_AMOUNT;           
     menu->rows = BASE_ROW_AMOUNT;
     menu->columns = BASE_COL_AMOUNT;
     menu->selected_item = BASE_SELECTED_ITEM;  
@@ -134,7 +128,6 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
     return menu;     
 }
 
-//num zero for all items and items num in menu for some item
 void set_item_action(MENU* menu, int num, MIACTION action) {
     if(num == 0) {
         menu->items_action = action;
@@ -144,14 +137,15 @@ void set_item_action(MENU* menu, int num, MIACTION action) {
     }
 }
 
-//Required function after initialization for init format of menu
-bool init_menu_format(MENU* menu, int row, int column) {  //row - max row for print column - num of column for print
+bool init_menu_format(MENU* menu, int row, int column) { 
     if(row <= 0 || column <= 0)
         return false;
+
     menu->max_rows = row;
     menu->columns = column;
-    menu->rows = menu->amount_items / column + 1;  //rows required for output
+    menu->rows = menu->amount_items / column + 1; 
     menu->items_abr = (ABREVIATED*)calloc(column, sizeof(ABREVIATED)); 
+
     for(int i = 0; i < column; i++) {
         menu->items_abr[i] = standart_abreviated;
     }
@@ -165,21 +159,21 @@ bool init_menu_format(MENU* menu, int row, int column) {  //row - max row for pr
     return true;
 }
 
-//if set USR_COL_SIZE should be execute
 void set_columns_size(MENU *menu, double* col_len, ...) {
     if(col_len == 0) {
         menu->columns_size = (double*)calloc(menu->columns + 1, sizeof(double));
         for(int i = 0; i < menu->columns; i++) {
             menu->columns_size[i] = 1.0 / menu->columns;
         }
-    }
-    else {
+    } else {
         size_t num_columns = (size_t)col_len;
         va_list args;
         va_start(args, col_len);
+
         menu->columns_size = (double*)calloc(num_columns + 1, sizeof(double));
         for(int i = 0; i < num_columns; i++) {
             menu->columns_size[i] = va_arg(args, double);
+
             if(menu->columns_size[i] > 1.0) {
                 if(getmaxx(menu->sub_window) < 40) {
                     menu->max_column -= menu->columns_size[i] / 2.0;
@@ -188,6 +182,7 @@ void set_columns_size(MENU *menu, double* col_len, ...) {
                 }
             }
         }
+
         va_end(args);
     }
 
@@ -197,11 +192,12 @@ void set_columns_size(MENU *menu, double* col_len, ...) {
 
 }
 
-//if set USE_COL_NAME should be execute
 void set_column_name(MENU *menu ,const wchar_t* names, ...) {
     menu->column_names = (MITEM**)calloc(menu->columns + 1, sizeof(MITEM*));
+
     va_list args;
     va_start(args, names);
+
     for(int i = 0; i < menu->columns; i++) {
         menu->column_names[i] = (MITEM*)malloc(sizeof(MITEM));
         menu->column_names[i]->size = wcslen(names) + 1;
@@ -221,8 +217,7 @@ int get_col_size(MENU* menu, int col) {
     if(menu->columns_size[col] > 1.0) {
         if(getmaxx(menu->sub_window) < 40 && menu->div_static_size) {
             size = menu->columns_size[col] / 2.0;
-        }
-        else {
+        } else {
             size = menu->columns_size[col];
         }
         return size;
@@ -248,7 +243,7 @@ int get_col_size(MENU* menu, int col) {
 void calc_item_coord(MENU* menu) {
     size_t start_x; int start_y;
     int n_item;
-    if(menu->selected_item < menu->max_rows * menu->columns) {   //if not all items can show in one page
+    if(menu->selected_item < menu->max_rows * menu->columns) {   
         start_y = n_item = 0;
     }
     else if(menu->amount_items > menu->max_rows * menu->columns && menu->selected_item >= menu->max_rows * menu->columns) {
@@ -306,9 +301,9 @@ void calc_item_coord(MENU* menu) {
     } 
 }
 
-//resize menu, should execute if subwin was resize of remove
 void resize_menu(MENU* menu) {
     menu->max_rows = getmaxy(menu->sub_window);
+
     menu->max_column = getmaxx(menu->sub_window);
     for(int i = 0; i < menu->columns; i++) {
         if(menu->columns_size[i] > 1.0) {
@@ -316,6 +311,7 @@ void resize_menu(MENU* menu) {
             menu->max_column -= col_size;
         }
     }
+
     if(menu->set_menu & USE_COL_NAME) {
         menu->max_rows -= 1;
     }
@@ -341,6 +337,7 @@ void print_column_names(MENU *menu) {
         mvwaddwstr(menu->sub_window, menu->column_names[i]->y, print_x, menu->column_names[i]->string);
 
         print_x += menu->column_names[i]->size - 1;
+
         if(i == menu->sorted_col && menu->is_sort) {
             if(menu->direction_sort == INCREASING) {
                 mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, print_x, U_ARROW_UP, 1);
@@ -348,9 +345,11 @@ void print_column_names(MENU *menu) {
                 mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, print_x, U_ARROW_DOWN, 1);
             }
         }
+
         start_x += size_col;
-        if(menu->set_menu & SPRT_INTERMEDIATE && i != menu->columns - 1)
+        if(menu->set_menu & SPRT_INTERMEDIATE && i != menu->columns - 1) {
             mvwaddnwstr(menu->sub_window, 0, start_x, &menu->sprt_sym, 1);
+        }
     }
 }
 
@@ -358,10 +357,9 @@ void print_menu_point(MENU* menu, int num) {
         int offset = 1;
         short color;
 
-        if((menu->set_menu & DESIG_ITEMS && menu->type_menu == GRID) 
-            || num % menu->columns == 0) {
+        if((menu->set_menu & DESIG_ITEMS && menu->type_menu == GRID) || num % menu->columns == 0) {
             if(menu->items[num]->pnt_sym == 0) {
-                    mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, menu->pnt_sym);
+                mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, menu->pnt_sym);
             } else {
                 color = menu->items[num]->pnt_color == -1? menu->items[num]->color : menu->items[num]->pnt_color;
                 mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, 
@@ -392,14 +390,10 @@ void print_menu_point(MENU* menu, int num) {
                 buffer, menu->slctd_item_color_pair);
             
         } else {    
-            if(menu->items[num]->color == -1) {
-                mvwaddwstr(menu->sub_window, menu->items[num]->y, menu->items[num]->x, buffer);
-            } else {
-                mvwaddwstr_color(menu->sub_window, menu->items[num]->y , menu->items[num]->x, 
-                    buffer, menu->items[num]->color);
-            }
+            color = menu->items[num]->pnt_color == -1? 0 : menu->items[num]->color;
+            mvwaddwstr_color(menu->sub_window, menu->items[num]->y , menu->items[num]->x, 
+                    buffer, color);
         }
-
         if(menu->type_menu == F_HBOX && num - (menu->columns - 1) == menu->selected_item) {  
             recolor_str(menu->sub_window, menu->items[menu->selected_item]->y, menu->slctd_item_color_pair);
         } 
@@ -413,7 +407,6 @@ void print_menu(MENU* menu) {
     if(menu == NULL) {
         return;
     }
-
     if(menu->set_menu & USE_COL_NAME) {
         print_column_names(menu);
     }
@@ -426,7 +419,6 @@ void print_menu(MENU* menu) {
             break;
         }
     }
-
     int item_in_page = menu->max_rows * menu->columns;
     for(int i = 0; i < item_in_page && i < menu->amount_items; i++) {
         print_menu_point(menu, n_item);
@@ -476,7 +468,6 @@ void menu_driver(MENU* menu, REQ_KEY key) {
     }
     if(need_scroll) {
         change_menu_action(menu, key, prev_selected_item);
-        wrefresh(menu->sub_window);
     }
 }
 
@@ -499,7 +490,6 @@ void scroll_menu(MENU* menu, REQ_KEY key) {
         default: break;
     }
     scrollok(menu->sub_window, false);
-
 }
 
 void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item) {
@@ -536,7 +526,6 @@ void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item) {
     }
 }
 
-//offset all element by vertical
 void offset_y_items(MENU* menu, int y) {
     int n_item = 0;
     bool is_break = false;
