@@ -64,6 +64,7 @@ MITEM** load_dir(File_Panel* file_panel) {
     MITEM **my_items = (MITEM**)calloc(sizeof_list(head) * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
 
     List* temp = head;
+    file_panel->files_info = head;
     while(temp != NULL) {
         for(int j = 0; j < FILE_MENU_FORMAT_COL; j++) {
             if(j == 0) {
@@ -126,9 +127,7 @@ bool change_dir(File_Panel* file_panel) {
 
     MITEM** new_items = load_dir(file_panel);
     set_new_items(file_panel->file_menu, new_items);
-
     unprint_menu(file_panel->file_menu);
-
     return true;
 }
 
@@ -145,7 +144,7 @@ bool init_file_menu(File_Panel* file_panel, MITEM** items) {
     STNDRT_SETTINGS_F_HBOX(set_menu);
     file_panel->file_menu = init_menu(items, file_panel->panel, file_panel->menu_sub_win, F_HBOX, set_menu);
     init_menu_format(file_panel->file_menu, row - FILE_MENU_FORMAT_ROW - SPACE_SELECTED_ELEMENT_ROW, FILE_MENU_FORMAT_COL);
-    set_columns_size(file_panel->file_menu, (double*)3, 0.65, 0.15, 0.2);
+    set_columns_size(file_panel->file_menu, (double*)3, 1.0, 10.0, 14.0);
     set_column_name(file_panel->file_menu, L"Имя", L"Размер", L"Время правки");
     init_color_slctd_item(file_panel->file_menu, MENU_SLCTD_ITEM);
     file_panel->file_menu->is_sort = true;
@@ -187,7 +186,16 @@ bool event_handler(File_Panel *file_panel, int key) {
 			else if(mevent.bstate & BUTTON1_RELEASED) {
 				REQ_KEY req_key = find_click_item(file_panel->file_menu, mevent);
                 if(req_key == COLUMN_CLICKED) {
-                    menu_sort(file_panel->file_menu, file_panel->file_menu->sorted_col, wcompare);
+                    if(file_panel->file_menu->sorted_col == 0) {
+                        menu_sort(file_panel->file_menu, file_panel->file_menu->sorted_col, wcompare);
+                    } 
+                    else if(file_panel->file_menu->sorted_col == 1) {
+                        menu_sort(file_panel->file_menu, file_panel->file_menu->sorted_col, wicompare);
+                    }
+                    else if(file_panel->file_menu->sorted_col == 2) {
+                        menu_sort(file_panel->file_menu, file_panel->file_menu->sorted_col, wcompare);
+                    }
+                    
                     unprint_menu(file_panel->file_menu);
                     print_menu(file_panel->file_menu);
                 } 
@@ -198,7 +206,7 @@ bool event_handler(File_Panel *file_panel, int key) {
     }
 
     print_current_file(file_panel, true);
-    wrefresh(file_panel->menu_sub_win);
+    wrefresh(file_panel->panel);
 
     return true;
 }
@@ -225,11 +233,19 @@ void print_current_file(File_Panel *file_panel, bool with_clear) {
         clear_y_str(file_panel->panel, y, 1, -1);
     }
 
-    if(wcscmp(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string, DIR_RETURN) == 0) {
+    bool is_free = false;
+    wchar_t* buffer = file_panel->file_menu->items[file_panel->file_menu->selected_item]->string;
+    if(wcslen(buffer) > getmaxx(file_panel->panel) - 4) {
+        buffer = standart_abreviated(buffer, getmaxx(file_panel->panel) - 4);
+    }
+    if(wcscmp(buffer, DIR_RETURN) == 0) {
         mvwaddwstr(file_panel->panel, y, x, DIR_RETURN_NAME);
     }
     else {
-        mvwaddwstr(file_panel->panel, y, x, file_panel->file_menu->items[file_panel->file_menu->selected_item]->string);
+        mvwaddwstr(file_panel->panel, y, x, buffer);
+    }
+    if(is_free) {
+        free(buffer);
     }
 }
 
@@ -255,5 +271,51 @@ void print_current_directory(File_Panel *file_panel, bool with_clear) {
         clear_y_str(file_panel->panel, row, 1, -1);
     }
 
-    mvwaddwstr(file_panel->panel, row, column, file_panel->current_directory);
+    bool is_free = false;
+    wchar_t* buffer = file_panel->current_directory;
+    if(wcslen(buffer) > getmaxx(file_panel->panel) - 4) {
+        buffer = standart_abreviated(buffer, getmaxx(file_panel->panel) - 4);
+    }
+    mvwaddwstr(file_panel->panel, row, column, buffer);
+
+    if(is_free) {
+        free(buffer);
+    }
+}
+
+wchar_t* get_select_file(File_Panel* file_panel) {
+    int size = wcslen(file_panel->current_directory) + 2 + file_panel->file_menu->items[file_panel->file_menu->selected_item]->size;
+    wchar_t* cur_file = (wchar_t*)calloc(size, sizeof(wchar_t));
+
+    swprintf(cur_file, size, L"%ls/%ls", file_panel->current_directory, 
+            file_panel->file_menu->items[file_panel->file_menu->selected_item]->string);
+
+    return cur_file;
+}
+
+int del_file(File_Panel* file_panel) {
+    int status = -1;
+    wchar_t* buffer = get_select_file(file_panel);
+
+    MSG_BOX* msg = init_message_box(5, 30, L"Удаление", L"Удалить файл?", true);
+    set_color_msg(msg, WARNING_BOX_COLOR);
+    status = show_msg(msg);
+
+    if(status != -1) {
+        status = delete_file(buffer);
+
+        if(status != 0) {
+            MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Не удалось удалить файл", false);
+            show_msg(exp);
+        } else {
+            set_new_items(file_panel->file_menu, load_dir(file_panel));
+        }
+    }
+
+    free(buffer);
+    unprint_menu(file_panel->file_menu);
+    print_menu(file_panel->file_menu);
+    wrefresh(file_panel->menu_sub_win);
+
+    return status;
 }
