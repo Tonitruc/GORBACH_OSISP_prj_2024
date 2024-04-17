@@ -24,10 +24,12 @@ typedef void (*MIACTION)();
 typedef struct _MITEM {
     wchar_t* string;
     int y; int x;
+    int col;
     size_t size;
     MIACTION action;
     short color;
-    chtype pnt_sym;
+    chtype pnt_sym; short pnt_color;
+    short slct_color; short sprt_color;
 } MITEM;
 
 typedef enum _TYPE_MENU {
@@ -58,6 +60,8 @@ typedef enum _DIRECTRION_SORT {
     DECREASING
 } SORT_DIR;
 
+typedef wchar_t* (*ABREVIATED)(wchar_t*, int);
+
 typedef struct MENU {
     TYPE_MENU type_menu;
     WINDOW* parent_window;
@@ -67,9 +71,11 @@ typedef struct MENU {
     size_t amount_items;
     int selected_item;
     MIACTION items_action;
+    ABREVIATED* items_abr;
     short slctd_item_color_pair;
 
-    int max_rows; 
+    int max_rows; int max_column;
+    bool div_static_size;
     int columns; int rows;
     double* columns_size;
     bool is_sort;
@@ -84,6 +90,7 @@ typedef struct MENU {
     chtype color_front_col;
     SETTINGS_MENU set_menu;
 } MENU;
+
 
 typedef enum _REQ_KEY {
     NON_REQ,
@@ -136,3 +143,4 @@ int clicked_column(MENU* menu, MEVENT event);
 
 //sort_items
 void menu_sort(MENU* menu, int col, int (*compare)(const void* value_f, const void* value_s));
+wchar_t* standart_abreviated(wchar_t* item, int col_size);

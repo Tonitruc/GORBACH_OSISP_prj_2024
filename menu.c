@@ -17,6 +17,9 @@ MITEM* init_menu_item(const wchar_t* string) {
     item->action = NULL;
     item->color = -1;
     item->pnt_sym = 0;
+    item->pnt_color = -1;
+    item->slct_color = -1;
+    item->sprt_color = -1;
     
     return item;
 }   
@@ -99,6 +102,9 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
         return NULL;
     }
 
+    //keypad(menu->parent_window, TRUE);
+    keypad(menu->sub_window, TRUE);
+
     menu->type_menu = type;
     menu->set_menu = set_menu;
 
@@ -119,6 +125,9 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
     menu->columns_size = NULL;
     menu->column_names = NULL;
     menu->is_sort = false;
+    menu->items_abr = NULL;
+    menu->max_column = getmaxx(menu->sub_window);
+    menu->div_static_size = true;
 
     menu->slctd_item_color_pair = 0;
 
@@ -142,6 +151,10 @@ bool init_menu_format(MENU* menu, int row, int column) {  //row - max row for pr
     menu->max_rows = row;
     menu->columns = column;
     menu->rows = menu->amount_items / column + 1;  //rows required for output
+    menu->items_abr = (ABREVIATED*)calloc(column, sizeof(ABREVIATED)); 
+    for(int i = 0; i < column; i++) {
+        menu->items_abr[i] = standart_abreviated;
+    }
     if(menu->set_menu & STNDRT_COL_SIZE) {
         set_columns_size(menu, 0);
     }
@@ -167,6 +180,13 @@ void set_columns_size(MENU *menu, double* col_len, ...) {
         menu->columns_size = (double*)calloc(num_columns + 1, sizeof(double));
         for(int i = 0; i < num_columns; i++) {
             menu->columns_size[i] = va_arg(args, double);
+            if(menu->columns_size[i] > 1.0) {
+                if(getmaxx(menu->sub_window) < 40) {
+                    menu->max_column -= menu->columns_size[i] / 2.0;
+                } else {
+                    menu->max_column -= menu->columns_size[i];                 
+                }
+            }
         }
         va_end(args);
     }
@@ -196,6 +216,35 @@ void set_column_name(MENU *menu ,const wchar_t* names, ...) {
     calc_item_coord(menu);
 }
 
+int get_col_size(MENU* menu, int col) {
+    int size;
+    if(menu->columns_size[col] > 1.0) {
+        if(getmaxx(menu->sub_window) < 40 && menu->div_static_size) {
+            size = menu->columns_size[col] / 2.0;
+        }
+        else {
+            size = menu->columns_size[col];
+        }
+        return size;
+         
+    } else {
+        size = menu->columns_size[col] * menu->max_column;
+    }
+
+    if(menu->set_menu & SPRT_INTERMEDIATE) {
+        if(col == 0 || col == menu->columns - 1) {
+            size -= 1;
+        } else {
+            size -= 2;      
+        }
+    }
+    if((menu->set_menu & DESIG_ITEMS && (col == 0 && menu->type_menu == F_HBOX))
+                                        || (menu->type_menu == GRID)) {
+        size -= 1;
+    }
+    return size;
+}
+
 void calc_item_coord(MENU* menu) {
     size_t start_x; int start_y;
     int n_item;
@@ -212,12 +261,17 @@ void calc_item_coord(MENU* menu) {
 
         for(int j = 0; j < menu->columns; j++) {
 
+            menu->items[n_item]->col = j;
             menu->items[n_item]->x = start_x;
             menu->items[n_item]->size = wcslen(menu->items[n_item]->string);
 
             //____COLUMN_FORMAT________
             if(menu->columns_size != NULL) {
-                start_x += menu->columns_size[j] * getmaxx(menu->sub_window);
+                if(menu->columns_size[j] > 1.0) {
+                    start_x += get_col_size(menu, j);
+                } else {
+                    start_x += menu->columns_size[j] * menu->max_column;
+                }
             }
 
             //____SEPARATE_COLUMN______
@@ -255,6 +309,13 @@ void calc_item_coord(MENU* menu) {
 //resize menu, should execute if subwin was resize of remove
 void resize_menu(MENU* menu) {
     menu->max_rows = getmaxy(menu->sub_window);
+    menu->max_column = getmaxx(menu->sub_window);
+    for(int i = 0; i < menu->columns; i++) {
+        if(menu->columns_size[i] > 1.0) {
+            int col_size = get_col_size(menu, i);
+            menu->max_column -= col_size;
+        }
+    }
     if(menu->set_menu & USE_COL_NAME) {
         menu->max_rows -= 1;
     }
@@ -267,19 +328,24 @@ void resize_menu(MENU* menu) {
 void print_column_names(MENU *menu) {  
     int start_x = 0;
     int size_col = 0;
+    int print_x = 0;
 
     for(int i = 0; i < menu->columns; i++) {
-        size_col = menu->columns_size[i] * getmaxx(menu->sub_window);
-        mvwaddwstr(menu->sub_window, menu->column_names[i]->y, start_x + (size_col - menu->column_names[i]->size) / 2 + 1, 
-            menu->column_names[i]->string);
+        if(menu->columns_size[i] > 1.0) {
+            size_col = get_col_size(menu, i);
+            print_x = start_x + 1;
+        } else {
+            size_col = menu->columns_size[i] * menu->max_column;
+            print_x = start_x + (size_col - menu->column_names[i]->size) / 2 + 1;
+        }
+        mvwaddwstr(menu->sub_window, menu->column_names[i]->y, print_x, menu->column_names[i]->string);
 
+        print_x += menu->column_names[i]->size - 1;
         if(i == menu->sorted_col && menu->is_sort) {
             if(menu->direction_sort == INCREASING) {
-                mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, start_x + (size_col - menu->column_names[i]->size) / 2, 
-                    U_ARROW_UP, 1);
+                mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, print_x, U_ARROW_UP, 1);
             } else if (menu->direction_sort == DECREASING) {
-                mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, start_x + (size_col - menu->column_names[i]->size) / 2, 
-                    U_ARROW_DOWN, 1);
+                mvwaddnwstr(menu->sub_window, menu->column_names[i]->y, print_x, U_ARROW_DOWN, 1);
             }
         }
         start_x += size_col;
@@ -290,45 +356,64 @@ void print_column_names(MENU *menu) {
 
 void print_menu_point(MENU* menu, int num) {
         int offset = 1;
+        short color;
 
         if((menu->set_menu & DESIG_ITEMS && menu->type_menu == GRID) 
             || num % menu->columns == 0) {
             if(menu->items[num]->pnt_sym == 0) {
                     mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, menu->pnt_sym);
             } else {
+                color = menu->items[num]->pnt_color == -1? menu->items[num]->color : menu->items[num]->pnt_color;
                 mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, 
-                        menu->items[num]->pnt_sym | COLOR_PAIR(menu->items[num]->color));
+                        menu->items[num]->pnt_sym | COLOR_PAIR(color));
             }
             offset++;
         }
 
         if(menu->set_menu & SPRT_INTERMEDIATE) {
-            mvwaddnwstr(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset--, &menu->sprt_sym, 1);
+            color = menu->items[num]->pnt_color == -1? 0 : menu->items[num]->sprt_color;
+            mvwaddnwstr_color(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset--, &menu->sprt_sym , color, 1);
         } 
+
+        bool is_free = false;  wchar_t* buffer;
+        if(get_col_size(menu, menu->items[num]->col) < menu->items[num]->size) {
+            buffer = menu->items_abr[menu->items[num]->col](menu->items[num]->string, get_col_size(menu, menu->items[num]->col));
+            is_free = true;
+        } else {
+            buffer = menu->items[num]->string;
+        }
 
         if(num == menu->selected_item) {
             if(menu->set_menu & DESIG_ITEMS){
                 mvwaddch(menu->sub_window, menu->items[num]->y, menu->items[num]->x - offset, 
-                    menu->slct_sym | COLOR_PAIR(menu->slctd_item_color_pair));
+                    menu->slct_sym | COLOR_PAIR(color));
             }
             mvwaddwstr_color(menu->sub_window, menu->items[num]->y , menu->items[num]->x, 
-                menu->items[num]->string, menu->slctd_item_color_pair);
+                buffer, menu->slctd_item_color_pair);
             
-        } else {     
+        } else {    
             if(menu->items[num]->color == -1) {
-                mvwaddwstr(menu->sub_window, menu->items[num]->y , menu->items[num]->x, menu->items[num]->string);
+                mvwaddwstr(menu->sub_window, menu->items[num]->y, menu->items[num]->x, buffer);
             } else {
                 mvwaddwstr_color(menu->sub_window, menu->items[num]->y , menu->items[num]->x, 
-                    menu->items[num]->string, menu->items[num]->color);
+                    buffer, menu->items[num]->color);
             }
         }
 
         if(menu->type_menu == F_HBOX && num - (menu->columns - 1) == menu->selected_item) {  
             recolor_str(menu->sub_window, menu->items[menu->selected_item]->y, menu->slctd_item_color_pair);
+        } 
+
+        if(is_free) {
+            free(buffer);
         }
 }
 
 void print_menu(MENU* menu) {
+    if(menu == NULL) {
+        return;
+    }
+
     if(menu->set_menu & USE_COL_NAME) {
         print_column_names(menu);
     }
@@ -343,7 +428,7 @@ void print_menu(MENU* menu) {
     }
 
     int item_in_page = menu->max_rows * menu->columns;
-    for(int i = 0; i < item_in_page; i++) {
+    for(int i = 0; i < item_in_page && i < menu->amount_items; i++) {
         print_menu_point(menu, n_item);
         n_item++;
     }
@@ -470,16 +555,18 @@ REQ_KEY find_click_item(MENU* menu, MEVENT event) {
     if(!wmouse_trafo(menu->sub_window, &event.y, &event.x, FALSE)) {
         return NON_REQ;
     }
+
     if(event.y == 0 && menu->set_menu & USE_COL_NAME && event.bstate & BUTTON1_RELEASED) {
         size_t col_size = 0;
         for(int i = 0; i < menu->columns; i++) {
-            if(event.x >= col_size && event.x <= col_size + getmaxx(menu->sub_window) * menu->columns_size[i]) {
+            if(event.x >= col_size && event.x <= col_size + get_col_size(menu, i)) {
                 if(i == menu->sorted_col) {
                     menu->direction_sort = menu->direction_sort == INCREASING? DECREASING : INCREASING;
                 }
                 menu->sorted_col = i;
+                break;
             }
-            col_size += getmaxx(menu->sub_window) * menu->columns_size[i];
+            col_size += get_col_size(menu, i);
         }
         return COLUMN_CLICKED;
     }
@@ -507,7 +594,6 @@ REQ_KEY find_click_item(MENU* menu, MEVENT event) {
             return ITEM_CLICKED;
         }
     }
-
     return NON_REQ;
 }
 
@@ -546,15 +632,20 @@ void free_menu(MENU *menu) {
     free_items(menu->items);
     free(menu->columns_size);
 
-    free_items(menu->column_names);
+    if(menu->column_names != NULL) {
+        free_items(menu->column_names);
+    }
+    if(menu->columns_size != NULL) {
+        //free(menu->columns_size);
+    }
 
     free(menu);
 }
 
 void menu_qsort(MENU* menu, int left, int right, SORT_DIR sort_dir, int (*compare)(const void* value_f, const void* value_s)) {
-    MITEM* middle = menu->items[((left + right) / 2) * 3];
-    int l = left * menu->columns;
-    int r = right * menu->columns;
+    MITEM* middle = menu->items[left];
+    int l = left;
+    int r = right;
     while(l <= r) {
         if(sort_dir == INCREASING) {
             while(compare(menu->items[l]->string, middle->string) < 0) l += menu->columns;
@@ -564,30 +655,24 @@ void menu_qsort(MENU* menu, int left, int right, SORT_DIR sort_dir, int (*compar
             while(compare(menu->items[r]->string, middle->string) < 0) r -= menu->columns;
         }
         if(l <= r) {
-            wchar_t* wtemp = menu->items[l]->string;
-            chtype ctemp = menu->items[l]->pnt_sym;
-            short coltemp = menu->items[l]->color;
-            menu->items[l]->string = menu->items[r]->string;
-            menu->items[l]->pnt_sym = menu->items[r]->pnt_sym;
-            menu->items[l]->color = menu->items[r]->color;
-            menu->items[r]->string = wtemp;
-            menu->items[r]->pnt_sym = ctemp;
-            menu->items[r]->color = coltemp;
+            MITEM item = *menu->items[l];
+            *menu->items[l] = *menu->items[r];
+            *menu->items[r] = item;
             l += menu->columns; r -= menu->columns;
         }
-        if( l / menu->columns < right) {
-            menu_qsort(menu, l / menu->columns, right, sort_dir, compare);
-        }
-        if( r / menu->columns > left) {
-            menu_qsort(menu, left, r / menu->columns, sort_dir, compare);
-        }
+    }
+    if( l  < right) {
+        menu_qsort(menu, l, right, sort_dir, compare);
+    }
+    if( r > left) {
+        menu_qsort(menu, left, r, sort_dir, compare);
     }
 }
 
 void menu_sort(MENU* menu, int col, int (*compare)(const void* value_f, const void* value_s)) {
     wchar_t* slctd = menu->items[menu->selected_item]->string;
 
-    menu_qsort(menu, 0, menu->amount_items / menu->columns - 1, menu->direction_sort, compare);
+    menu_qsort(menu, col, menu->amount_items - menu->columns + col, menu->direction_sort, compare);
 
     for(int i = 0; i < menu->amount_items; i++) {
         if(wcscmp(slctd, menu->items[i]->string) == 0) {
@@ -597,4 +682,17 @@ void menu_sort(MENU* menu, int col, int (*compare)(const void* value_f, const vo
 
     calc_item_coord(menu);
 
+}
+
+wchar_t* standart_abreviated(wchar_t* wstr, int col_size) {
+    int max_size = col_size;
+    if(col_size <= 1) {
+        max_size = 1;
+    }
+
+    wchar_t* abr_wsrt = (wchar_t*)calloc(max_size + 1, sizeof(wchar_t));
+    abr_wsrt = wsubstring(wstr, wcslen(wstr) - max_size + 1, 0);
+    abr_wsrt[0] = L'~';
+
+    return abr_wsrt;
 }
