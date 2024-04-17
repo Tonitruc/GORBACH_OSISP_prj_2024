@@ -1,5 +1,7 @@
 ## Двухпанельный файловый менеджер с вкладками
 
-![image](https://github.com/Tonitruc/GORBACH_OSISP_prj_2024/assets/139448882/96e8a50f-7369-41f0-aa43-ce1ab2e7c398)
+![image](https://github.com/Tonitruc/GORBACH_OSISP_prj_2024/assets/139448882/51500c10-4c51-47aa-95cc-12448901f44d)
+
+
 
 
