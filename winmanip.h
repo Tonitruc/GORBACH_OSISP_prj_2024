@@ -1,5 +1,9 @@
 #pragma once
 
+#include <ncursesw/ncurses.h>
+#include <wchar.h>
+#include <stdlib.h>
+
 #define COLOR_VIOLET 9
 #define COLOR_DEEP_BLUE 10
 #define COLOR_ORANGE 11
@@ -21,15 +25,19 @@
 #define SLCTD_TOP_PANEL 39
 
 #define BOTTOM_PANEL_ITEM 40
+#define BOTTOM_PANEL_SLCTD_ITEM 41
+
+#define EXCEPTION_COLOR 42
+#define SLCTD_EXCEPTION_COLOR 43
+#define WARNING_BOX_COLOR 44
 
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"
 
-#include <ncursesw/ncurses.h>
-#include <wchar.h>
-#include <stdlib.h>
+#define CENTER_SCR(start_x, start_y) start_x = (LINES - 1) / 2; start_y = (COLS - 1) / 2
 
 void clear_y_str(WINDOW* win, int y, int start_x, int len);
 void ext_start_color();
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair);
+void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair, int n);
 void recolor_str(WINDOW* win, int y, short color_pair);
