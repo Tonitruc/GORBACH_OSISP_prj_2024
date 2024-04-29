@@ -1,5 +1,29 @@
 #include "file_types.h"
 
+wchar_t* get_cur_dir() {
+    size_t size = 1024;
+    char* buffer = (char*)calloc(size, sizeof(char)); 
+    wchar_t* cur_dir = NULL;
+
+    bool is_break = false;
+    while(!is_break) {
+        if (getcwd(buffer, size) != NULL) {
+            is_break = true;
+            cur_dir = cstowchs(buffer);
+        } 
+        else if(errno == ERANGE) {
+            size *= 2;
+            buffer = (char*)realloc(buffer, size * sizeof(char));
+        } 
+        else {
+            is_break = true;
+        }
+    }
+    free(buffer);
+
+    return cur_dir;
+}
+
 FINFO* init_file_info(wchar_t* full_path, wchar_t* file_name, time_t edit_time, int size_kb, FILE_TYPE file_type) {
     FINFO* finfo = (FINFO*)calloc(1, sizeof(FINFO));
 
@@ -82,4 +106,37 @@ List* read_dir(char* path) {
 
     closedir(dir);
     return head;
+}
+
+int finfo_name_compare(FINFO* first, FINFO* second) {
+    if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
+        return -1;
+    } 
+    else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
+        return 1;
+    } 
+
+    return wcscmp(first->file_name, second->file_name);
+}
+
+int finfo_size_compare(FINFO* first, FINFO* second) {
+    if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
+        return -1;
+    } 
+    else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
+        return 1;
+    } 
+
+    return first->size_kb < second->size_kb;
+}
+
+int finfo_time_compare(FINFO* first, FINFO* second) {
+    if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
+        return -1;
+    } 
+    else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
+        return 1;
+    } 
+
+    return first->edit_time < second->edit_time;
 }

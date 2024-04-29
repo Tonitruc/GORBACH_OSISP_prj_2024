@@ -39,7 +39,7 @@ wchar_t* cstowchs(const char* char_string) {
     return w_string;
 }
 
-wchar_t* wchtoint(int num) {
+wchar_t* inttowchs(int num) {
     size_t num_size = 0;
     int temp = num;
 
@@ -59,6 +59,12 @@ wchar_t* wchtoint(int num) {
     return wstr_num;
 }
 
+int wchstoint(wchar_t* num) {
+    int int_value = wcstol(num, NULL, 10);
+
+    return int_value;
+}
+
 char* wchtochs(wchar_t* wstr) {
     size_t w_size = wcslen(wstr) * sizeof(wchar_t) + 1;
     char* str = (char*)calloc(w_size + 1, sizeof(char)); 
@@ -73,10 +79,9 @@ wchar_t* wtime(time_t time) {
     struct tm* s_time;
 
     s_time = gmtime(&time);
-    wchar_t* ws_month = get_wsmonth(time);
 
-    swprintf(ws_time, STNDRT_TIME_SIZE + 1, L"%ls %2d %02d:%02d", ws_month, s_time->tm_mday, s_time->tm_hour, s_time->tm_min);
-    free(ws_month);
+    swprintf(ws_time, STNDRT_TIME_SIZE + 1, L"%d.%02d.%02d %02d:%02d", s_time->tm_year + 1900, s_time->tm_mon, s_time->tm_mday, 
+                s_time->tm_hour, s_time->tm_min);
 
     return ws_time;
 }
@@ -86,10 +91,13 @@ wchar_t* wsubstring(const wchar_t* wstring, int start, int len) {
     if(start <= 0 || start > wstr_len || len < 0 || len + start > wstr_len) {
         return NULL;
     }
-
+    if(len == 0) {
+        len = wstr_len - start + 1;
+    }
+    start--;
     wchar_t* wsubstr = (wchar_t*)calloc(len + 1, sizeof(wchar_t));
     for(int i = 0; i < len; i++) {
-        wsubstr[i] = wstring[--start];
+        wsubstr[i] = wstring[start++];
     }
 
     return wsubstr;
@@ -122,7 +130,7 @@ bool wchstrcmp(wchar_t* sourse, wchar_t* wstr, int start, int len) {
         }
     }
 
-    for(i; i >= 0; i--) {
+    for(; i >= 0; i--) {
         if(wstr[i] != sourse[start--]) {
             return false;
         }
@@ -133,4 +141,45 @@ bool wchstrcmp(wchar_t* sourse, wchar_t* wstr, int start, int len) {
 
 int wcompare(const void* wstr1, const void* wstr2) {
     return wcscmp((const wchar_t*)wstr1, (const wchar_t*)wstr2);
+}
+
+int wfcompare(const void* wstr1, const void* wstr2) {
+    return wcscmp((const wchar_t*)wstr1, (const wchar_t*)wstr2);
+}
+
+int wicompare(const void* wstr1, const void* wstr2) {
+    wchar_t* buffer1 = (wchar_t*)calloc(wcslen(wstr1) + 1, sizeof(wchar_t));
+    wchar_t* buffer2 = (wchar_t*)calloc(wcslen(wstr2) + 1, sizeof(wchar_t));
+    wcscpy(buffer1, wstr1);
+    wcscpy(buffer2, wstr2);
+
+    int result = wchstoint(buffer1) - wchstoint(buffer2);
+    free(buffer1);
+    free(buffer2);
+    return result;
+}
+
+int wtcompare(const void* wstr1, const void* wstr2) {
+    wchar_t* buffer1 = (wchar_t*)calloc(wcslen(wstr1) + 1, sizeof(wchar_t));
+    wchar_t* buffer2 = (wchar_t*)calloc(wcslen(wstr2) + 1, sizeof(wchar_t));
+    wcscpy(buffer1, wstr1);
+    wcscpy(buffer2, wstr2);
+
+
+
+
+    int result = wchstoint(buffer1) - wchstoint(buffer2);
+    free(buffer1);
+    free(buffer2);
+    return result;
+}
+
+wchar_t* wcsscat(wchar_t* str1, wchar_t* str2) {
+    size_t size = wcslen(str1) + wcslen(str2) + 1;
+    wchar_t* result = (wchar_t*)calloc(size, sizeof(wchar_t));
+
+    wcsncpy(result, str1, wcslen(str1));
+    wcsncat(result, str2, wcslen(str2) + 1);
+
+    return result;
 }

@@ -16,13 +16,17 @@ void clear_y_str(WINDOW* win, int y, int start_x, int len) {
 void ext_start_color() {
     start_color();
 
-    init_color(COLOR_VIOLET, 94, 9, 180);
+    init_color(COLOR_VIOLET, 160, 0, 580);
+    init_color(COLOR_DARK_BLUE, 16, 40, 250);
     init_color(COLOR_DEEP_BLUE, 2, 46, 112);
     init_color(COLOR_BEIGE, 209, 188, 138);
     init_color(COLOR_GRAY, 255, 255, 255);
+    init_color(COLOR_LIGHT_YELLOW, 1000, 1000, 0);
+    init_color(COLOR_ORANGE, 800, 500, 0);
+    init_color(COLOR_LIGHT_GREEN, 126, 800, 0);
     
-    init_pair(MENU_GREEN, COLOR_GREEN, COLOR_DEEP_BLUE);
-    init_pair(MENU_YELLOW, COLOR_YELLOW, COLOR_DEEP_BLUE);
+    init_pair(MENU_GREEN, COLOR_LIGHT_GREEN, COLOR_DEEP_BLUE);
+    init_pair(MENU_YELLOW, COLOR_ORANGE, COLOR_DEEP_BLUE);
     init_pair(MENU_RED, COLOR_RED, COLOR_DEEP_BLUE);
     init_pair(MENU_GRAY, COLOR_GRAY, COLOR_DEEP_BLUE);
     init_pair(MENU_WHITE, COLOR_WHITE, COLOR_DEEP_BLUE);
@@ -30,14 +34,14 @@ void ext_start_color() {
     init_pair(MENU_BEIGE, COLOR_BEIGE, COLOR_DEEP_BLUE);
     init_pair(MENU_SLCTD_ITEM, COLOR_RED, COLOR_CYAN);
 
-    init_pair(TOP_PANEL_COLOR, COLOR_WHITE, COLOR_VIOLET);
-    init_pair(SLCTD_TOP_PANEL, COLOR_DEEP_BLUE, COLOR_WHITE);
+	init_pair(TOP_PANEL_COLOR, COLOR_WHITE, COLOR_DARK_BLUE);
+	init_pair(SLCTD_TOP_PANEL, COLOR_DEEP_BLUE, COLOR_WHITE);
 
-    init_pair(BOTTOM_PANEL_ITEM, COLOR_WHITE, COLOR_BLACK);
+	init_pair(BOTTOM_PANEL_ITEM, COLOR_WHITE, COLOR_BLACK);
     init_pair(BOTTOM_PANEL_SLCTD_ITEM, COLOR_BLACK, COLOR_CYAN);
     
     init_pair(EXCEPTION_COLOR, COLOR_WHITE, COLOR_RED);
-    init_pair(WARNING_BOX_COLOR, COLOR_WHITE, COLOR_YELLOW);
+    init_pair(WARNING_BOX_COLOR, COLOR_WHITE, COLOR_ORANGE);
 
     init_pair(SLCTD_EXCEPTION_COLOR, COLOR_BLACK, COLOR_WHITE);
 }
@@ -74,4 +78,19 @@ void recolor_str(WINDOW* win, int y, short color_pair) {
         setcchar(&buffer, wstr + i, A_NORMAL, color_pair, NULL);
         mvwadd_wch(win, y, i, &buffer);
     }
+}
+
+int start_app(const char* path, const char* args[]) {
+    int status = 1;
+    endwin();
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp(path, path, args[0], NULL);
+        status = -1;
+    } else {
+        waitpid(pid, &status, 0);
+        WIFEXITED(status);
+    }
+    initscr();
+    return status;
 }

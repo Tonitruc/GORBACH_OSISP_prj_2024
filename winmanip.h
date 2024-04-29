@@ -3,6 +3,8 @@
 #include <ncursesw/ncurses.h>
 #include <wchar.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define COLOR_VIOLET 9
 #define COLOR_DEEP_BLUE 10
@@ -10,6 +12,9 @@
 #define COLOR_DEEP_PINK 12
 #define COLOR_GRAY 13
 #define COLOR_BEIGE 14
+#define COLOR_LIGHT_YELLOW 15
+#define COLOR_LIGHT_GREEN 16
+#define COLOR_DARK_BLUE 17
 
 #define MENU_GREEN 30
 #define MENU_YELLOW 31
@@ -34,10 +39,11 @@
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"
 
-#define CENTER_SCR(start_x, start_y) start_x = (LINES - 1) / 2; start_y = (COLS - 1) / 2
+#define CENTER_SCR(start_y, start_x) start_x = (COLS - 1) / 2; start_y = (LINES - 1) / 2
 
 void clear_y_str(WINDOW* win, int y, int start_x, int len);
 void ext_start_color();
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair);
 void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair, int n);
 void recolor_str(WINDOW* win, int y, short color_pair);
+int start_app(const char* path, const char* args[]);
