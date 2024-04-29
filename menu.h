@@ -16,8 +16,8 @@
 
 #define mvwprintwr(win, y, x, format_str, ...) wattron(win, A_REVERSE); mvwprintw(win, y, x, format_str, __VA_ARGS__); wattroff(win, A_REVERSE)
 
-#define STNDRT_SETTINGS_GRID(set_grid) set_grid = SPRT_INTERMEDIATE | NON_DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME
-#define STNDRT_SETTINGS_F_HBOX(set_f_hbox) set_f_hbox = SPRT_INTERMEDIATE | DESIG_ITEMS | USER_COL_SIZE | USE_COL_NAME
+#define STNDRT_SETTINGS_GRID(set_grid) set_grid = SPRT_INTERMEDIATE | NON_DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME | ALLIGMENT_LEFT
+#define STNDRT_SETTINGS_F_HBOX(set_f_hbox) set_f_hbox = SPRT_INTERMEDIATE | DESIG_ITEMS | USER_COL_SIZE | USE_COL_NAME | ALLIGMENT_LEFT
 
 typedef void (*MIACTION)();
 
@@ -52,7 +52,8 @@ typedef enum _SETTINGS_MENU {
     //col name
     USE_COL_NAME = 256,
     NON_COL_NAME = 512,
-
+    ALLIGMENT_CENTER = 1024,
+    ALLIGMENT_LEFT = 2048
 } SETTINGS_MENU;
 
 typedef enum _DIRECTRION_SORT {
@@ -99,7 +100,8 @@ typedef enum _REQ_KEY {
     REQ_LEFT_ITEM,
     REQ_RIGHT_ITEM,
     ITEM_CLICKED,
-    COLUMN_CLICKED
+    COLUMN_CLICKED,
+    SAME_ITEM,
 } REQ_KEY;
 
 //-------------Menu items-------------
@@ -125,6 +127,7 @@ void init_color_slctd_item(MENU* menu, short color_pair);
 
 //free menu
 void set_new_items(MENU* menu, MITEM** new_items);
+void add_item(MENU* menu, MITEM* new_item, int index);
 void free_menu(MENU *menu);
 
 //-------------Print Menu-------------
