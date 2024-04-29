@@ -31,19 +31,17 @@ void set_color_msg(MSG_BOX* msg_box, short color_pair) {
 }
 
 MSG_REQ show_msg(MSG_BOX* msg) {
-    MENU* menu;
+    MENU* menu = NULL;
     if(msg->is_verified) {
         WINDOW* win = derwin(msg->window, 1, msg->width - 4, msg->height - 1, 2);
-        keypad(win, TRUE);
         MITEM **items = (MITEM**)calloc(3, sizeof(MITEM));
         items[0] = init_menu_item(L"[ ОК ]");
         items[1] = init_menu_item(L"[ ОТМЕНА ]");
-
-        SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME;
+        SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME | ALLIGMENT_CENTER;
         menu = init_menu(items, msg->window, win, GRID, set_menu);
         init_menu_format(menu, 1, 2);
         menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
-        set_columns_size(menu, (double*)2, 1.0/3.0, 2.0/3.0);
+        set_columns_size(menu, (double*)2, 0.5, 0.5);
     } else {
         mvwprintw(msg->window, getmaxy(msg->window) - 1, 1, " Нажмите любую клавишу ");
     }
@@ -54,36 +52,41 @@ MSG_REQ show_msg(MSG_BOX* msg) {
     box(msg->window, 0, 0);
     mvwaddwstr(msg->window, 0, (msg->width - 2) / 2 - wcslen(msg->title) / 2, msg->title);
 
-    int i = 0;
     do {
         print_menu(menu);
         wrefresh(msg->window);
+        if(msg->is_verified) {
+            wrefresh(menu->sub_window);
+        }
         key = wgetch(msg->window);
-        if(key == '\n') {
+        if(key == '\n' && msg->is_verified) {
             if(menu->selected_item == 0) {
-                status = ALLOW;
+                status = M_ALLOW;
             } else {
-                status = CANCEL;
+                status = M_CANCEL;
             }
             break;
         } 
-        else if (key == KEY_RIGHT) {
+        else if (key == KEY_RIGHT && msg->is_verified) {
             menu_driver(menu, REQ_RIGHT_ITEM);
         } 
-        else if (key == KEY_LEFT) {
+        else if (key == KEY_LEFT && msg->is_verified) {
             menu_driver(menu, REQ_LEFT_ITEM);
         }
         else if(key == KEY_MOUSE && msg->is_verified) {
             MEVENT mevent;
             if(getmouse(&mevent) == OK) {
                 find_click_item(menu, mevent);
-                wrefresh(menu->sub_window);
             }
         }
     } while(msg->is_verified);
 
-    wclear(msg->window);
     wrefresh(msg->window);
+
+    if(msg->is_verified) {
+        delwin(menu->sub_window);
+        free_menu(menu);
+    }
     free_msg(msg);
 
     return status;

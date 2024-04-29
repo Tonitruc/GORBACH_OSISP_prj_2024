@@ -9,10 +9,9 @@
 #include "file_operation.h"
 
 typedef enum _MSG_REQ {
-    ALLOW = 1, 
-    CANCEL = -1
+    M_ALLOW = 1, 
+    M_CANCEL = -1
 } MSG_REQ;
-
 
 typedef struct _MSG_WIN {
    WINDOW* window;
