@@ -1,6 +1,5 @@
 #include "List.h"
 
-
 void add_last(List** head, List** tail, FINFO* data) {
     List* new_node = (List*)malloc(sizeof(List));
     new_node->next = NULL;
@@ -140,6 +139,40 @@ void add_by(List **head, List **tail, FINFO* data, int (*comparator)(const void*
     }
 }
 
+void swap_finfo(FINFO** first, FINFO** second) {
+    FINFO* temp = *first;
+    *first = *second;
+    *second = temp;
+}
+
+List* division(List* head, List* tail, int (*comparator)(FINFO*, FINFO*), int dir) {
+    FINFO* data = tail->data;
+    List* ave = head->prev;
+
+    for(List* left = head; left != tail; left = left->next) {
+        if(comparator(left->data, data) <= 0 && dir == 1) {
+            ave = ave == NULL? head : ave->next;
+            swap_finfo(&(ave->data), &(left->data));
+        } 
+        else if(comparator(left->data, data) >= 0 && dir == 0) {
+            ave = ave == NULL? head : ave->next;
+            swap_finfo(&(ave->data), &(left->data));
+        } 
+    }
+    ave = ave == NULL? head : ave->next;
+    swap_finfo(&(ave->data), &(tail->data));
+    return ave;
+}
+
+void sort_list(List* head, List* tail, int (*comparator)(FINFO*, FINFO*), int dir) {
+    if (tail != NULL && head != tail && head != tail->next) 
+    { 
+        List* div = division(head, tail, comparator, dir); 
+        sort_list(head, div->prev, comparator, dir); 
+        sort_list(div->next, tail, comparator, dir); 
+    } 
+}
+
 int sizeof_list(List* head) {
     int num = 0;
     while(head != NULL) {
@@ -159,4 +192,16 @@ void free_list(List *head) {
         head = head->next;
         free(prev);
     }
+}
+
+List* get_tail(List* head) {
+    if(head == NULL) {
+        return NULL;
+    }
+
+    while(head->next != NULL) {
+        head = head->next;
+    }
+
+    return head;
 }
