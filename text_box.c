@@ -1,25 +1,64 @@
 #include "text_box.h"
 
-TEXT_BOX* init_text_box(int height, int width, wchar_t* title, wchar_t* message, VALIDATOR validator) {
-    int start_x, start_y;
-    CENTER_SCR(start_x, start_y);
-    start_x -= height / 2;
-    start_y -= width / 2;
+TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wchar_t* title, wchar_t* message, const char* pattern, bool verify) {
+    int start_x = x, start_y = y;
+    if(x == 0 && y == 0) {
+        CENTER_SCR(start_y, start_x);
+        start_y -= height / 2;
+        start_x -= width / 2;
+    }
 
     TEXT_BOX* text_box = (TEXT_BOX*)calloc(1, sizeof(TEXT_BOX));
-    text_box->window = newwin(height, width, start_x, start_y);
+    text_box->start_x = start_x;
+    text_box->start_y = start_y;
+    text_box->window = derwin(par_win, height, width, start_y, start_x);
 
     text_box->height = height;
     text_box->width = width;
-    text_box->validator = validator;
+    text_box->pattern = pattern;
+    text_box->box = true;
+    text_box->verify = verify;
     
     text_box->title = (wchar_t*)calloc(wcslen(title + 1), sizeof(wchar_t*));
     text_box->message = (wchar_t*)calloc(wcslen(message + 1), sizeof(wchar_t*));
     wattron(text_box->window, COLOR_PAIR(TOP_PANEL_COLOR));
     wbkgd(text_box->window, COLOR_PAIR(TOP_PANEL_COLOR));
+    werase(text_box->window);
     keypad(text_box->window, TRUE);
     wcscpy(text_box->title, title);
     wcscpy(text_box->message, message);
+
+    FIELD **field = (FIELD**)calloc(2, sizeof(FIELD*));
+    field[0] = new_field(1, width - 5, 0, 0, 0, 0);
+
+    text_box->fields = field;
+
+    text_box->form = new_form(field);
+    set_form_win(text_box->form, text_box->window);
+    WINDOW* form_win = derwin(text_box->window, 1, width - 4, text_box->height / 2, 2);
+    keypad(form_win, TRUE);
+
+    set_form_sub(text_box->form, form_win);
+    set_field_opts(field[0], O_VISIBLE | O_PUBLIC | O_EDIT | O_ACTIVE);
+        //set_field_type(field[0], TYPE_ALNUM);
+
+    text_box->menu = NULL;
+
+    if(text_box->verify) {
+        MENU* menu;
+        WINDOW* menu_win = derwin(text_box->window, 1, width - 4, height - 1, 2);
+        keypad(menu_win, TRUE);
+        MITEM **items = (MITEM**)calloc(3, sizeof(MITEM*));
+        items[0] = init_menu_item(L"[ ОК ]");
+        items[1] = init_menu_item(L"[ ОТМЕНА ]");
+        SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME | ALLIGMENT_CENTER;
+        menu = init_menu(items, text_box->window, menu_win, GRID, set_menu);
+        init_menu_format(menu, 1, 2);
+        menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
+        set_columns_size(menu, (double*)2, 0.5, 0.5);
+
+        text_box->menu = menu;
+    }
 
     return text_box;
 }
@@ -30,84 +69,106 @@ void set_color_text(TEXT_BOX* tb, short color_pair) {
     wbkgd(tb->window, COLOR_PAIR(color_pair));
 }
 
-TEXT_REQ input_text_box(TEXT_BOX* tb) {
-    MENU* menu;
-    WINDOW* win = derwin(tb->window, 1, tb->width - 4, tb->height - 1, 2);
-    keypad(win, TRUE);
+void show_text_box(TEXT_BOX* tb) {
+    wrefresh(tb->form->sub);
+    wrefresh(tb->window);
+    post_form(tb->form);
 
-    MITEM **items = (MITEM**)calloc(3, sizeof(MITEM));
-    items[0] = init_menu_item(L"[ ОК ]");
-    items[1] = init_menu_item(L"[ ОТМЕНА ]");
-    SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME;
-    menu = init_menu(items, tb->window, win, GRID, set_menu);
-    init_menu_format(menu, 1, 2);
-    menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
-    set_columns_size(menu, (double*)2, 1.0/3.0, 2.0/3.0);
-
-        int start_x, start_y;
-    CENTER_SCR(start_x, start_y);
-    FIELD *field[2] = {
-        new_field(1, tb->width - 4, 0, 0, 0, 0),
-        NULL
-    }; 
-    FORM *form = new_form(field);
-    set_form_win(form, tb->window);
-    WINDOW* win2 = derwin(tb->window, 1, tb->width - 4, 2, 2);
-    set_form_sub(form, win2);
-    set_field_opts(field[0], O_VISIBLE | O_PUBLIC | O_EDIT | O_ACTIVE);
-
-    int status;
-    int key;
-    mvwaddwstr(tb->window, getmaxy(tb->window) / 2 - 2, 2, tb->message);
-    box(tb->window, 0, 0);
+    mvwaddwstr(tb->window, tb->height / 2 - 1, 2, tb->message);
+    if(tb->box) {
+        box(tb->window, 0, 0);
+    }
     mvwaddwstr(tb->window, 0, (tb->width - 2) / 2 - wcslen(tb->title) / 2, tb->title);
-    post_form(form);
-    wchar_t sym;
 
+    if(tb->verify) {
+        print_menu(tb->menu);
+    }
+}
+
+size_t get_field_len(FIELD* field) {
+    char* buffer = field_buffer(field, 0);
+    size_t len = strlen(buffer);
+    int i = len - 1;
+    while(buffer[i] == ' ' && i > 0) i--;
+    len = i + 1;
+    return len;
+}
+
+TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
+    show_text_box(tb);
+    int status = -2;
+    int key; wint_t sym;
+
+    int num = 0;
     do {
-        print_menu(menu);
-                refresh();
-        wrefresh(win2);
-        wrefresh(tb->window);
-        wrefresh(menu->sub_window);
-        key = wget_wch(tb->window, &sym);
-        if(sym == L'\n' || sym == KEY_ENTER) {
-            if(menu->selected_item == 0) {
+        curs_set(true);
+        form_driver(tb->form, ' ');
+        form_driver(tb->form, REQ_DEL_PREV);
+
+        if(tb->verify) {
+            wnoutrefresh(tb->menu->sub_window);
+            print_menu(tb->menu);
+        }
+        wnoutrefresh(tb->window);
+        doupdate();
+        key = wgetch(tb->window);
+        if((key == '\n' || key == KEY_ENTER) && tb->verify) {
+            if(tb->menu->selected_item == 0) {
+                form_driver(tb->form, REQ_VALIDATION); 
+                num = get_field_len(tb->form->field[0]); 
+                *result = (char*)calloc(num + 1, sizeof(char));
+                char* inp_str = field_buffer(tb->form->field[0], 0);
+                strncpy(*result, inp_str, num);
+                (*result)[num] = '\0';                                           
                 status = T_ALLOW;
             } else {
                 status = T_CANCEL;
+                *result = NULL;
             }
             break;
         } 
-        else if (sym == KEY_RIGHT) {
-            menu_driver(menu, REQ_RIGHT_ITEM);
+        else if (key == KEY_RIGHT && tb->verify) {
+            menu_driver(tb->menu, REQ_RIGHT_ITEM);
         } 
-        else if (sym == KEY_LEFT) {
-            menu_driver(menu, REQ_LEFT_ITEM);
+        else if (key == KEY_LEFT && tb->verify) {
+            menu_driver(tb->menu, REQ_LEFT_ITEM);
         }
-        else if(sym == KEY_MOUSE) {
+        else if(key == KEY_MOUSE) {
             MEVENT mevent;
-            if(getmouse(&mevent) == OK) {
-                find_click_item(menu, mevent);
+            if(getmouse(&mevent) == OK && mevent.bstate &  BUTTON1_RELEASED) {
+                if(wenclose(tb->window, mevent.y, mevent.x) && tb->verify) {
+                    find_click_item(tb->menu, mevent);
+                } else if(!wenclose(tb->window, mevent.y, mevent.x))  {
+                    curs_set(false);
+                    return T_CANCEL;
+                }
             }
         } 
-        else if(sym == KEY_BACKSPACE) {
-            form_driver(form, REQ_DEL_PREV);
+        else if(key == KEY_BACKSPACE) {
+            form_driver(tb->form, REQ_DEL_PREV);
         } 
+        else if(key == KEY_RESIZE) {
+            status = T_CANCEL;
+        }
         else {
-            form_driver_w(form, key, sym);
+            wchar_t wsym = (wchar_t)sym;
+            form_driver(tb->form, key);
         }
 
-    } while(status != T_ALLOW);
+    } while(status == -2);
+    curs_set(false);
 
-    wclear(tb->window);
     wrefresh(tb->window);
-    free_text(tb);
-
     return status;
 }
 
 void free_text(TEXT_BOX* tb) {
+    if(tb->verify) {
+        free_menu(tb->menu);
+    }
+
+    unpost_form(tb->form);
+    free_form(tb->form);
     free(tb->title);
     free(tb->message);
 
