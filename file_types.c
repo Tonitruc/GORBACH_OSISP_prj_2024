@@ -67,12 +67,12 @@ FILE_TYPE get_file_type(wchar_t* wfull_path) {
     return file_type;
 }
 
-List* read_dir(char* path) {
+LIST* read_dir(char* path) {
     DIR *dir;
     struct dirent* d;
     struct stat file_info;
 
-    List* head = NULL, *tail = NULL;
+    LIST* list = init_list();
     FINFO* finfo;
     wchar_t* file_name; wchar_t* full_path;
     time_t edit_time; long size_kb;
@@ -99,13 +99,13 @@ List* read_dir(char* path) {
         file_type = get_file_type(wbuffer);
         finfo = init_file_info(full_path, file_name, edit_time, size_kb, file_type);
 
-        add_last(&head, &tail, finfo);
+        add_last(list, finfo);
         free(buffer);
         free(wbuffer);
     }
 
     closedir(dir);
-    return head;
+    return list;
 }
 
 int finfo_name_compare(FINFO* first, FINFO* second) {
@@ -139,4 +139,76 @@ int finfo_time_compare(FINFO* first, FINFO* second) {
     } 
 
     return first->edit_time < second->edit_time;
+}
+
+void rfind_files(LIST* result, char* start_dir, regex_t regex) {
+    DIR *dir;
+    struct dirent* d;
+    struct stat file_info;
+
+    FINFO* finfo;
+    wchar_t* file_name; wchar_t* full_path;
+    time_t edit_time; long size_kb;
+    FILE_TYPE file_type;
+
+    wchar_t* wbuffer;
+    dir = opendir(start_dir);
+    while((d = readdir(dir))) {
+        if(strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0)
+            continue;
+
+        char* buffer = (char*)calloc(strlen(d->d_name) + strlen(start_dir) + 2, sizeof(char));
+        sprintf(buffer, "%s/%s", start_dir, d->d_name);
+        full_path = cstowchs(buffer);
+
+        file_name = cstowchs(d->d_name);
+        wbuffer = cstowchs(buffer);
+        file_type = get_file_type(wbuffer);
+
+        if(get_file_type(full_path) == DIRECTORY) {   
+            if (stat(buffer, &file_info) == 0) {
+                edit_time = file_info.st_mtime;
+                size_kb = file_info.st_size;      
+            }
+
+            finfo = init_file_info(full_path, file_name, edit_time, size_kb, DIRECTORY);
+            rfind_files(result, buffer, regex);
+            add_last(result, finfo);
+        } else if(regexec(&regex, d->d_name, 0, NULL, 0) == 0) {
+            if (stat(buffer, &file_info) == 0) {
+                edit_time = file_info.st_mtime;
+                size_kb = file_info.st_size;      
+            }
+
+            finfo = init_file_info(full_path, file_name, edit_time, size_kb, file_type);
+            add_last(result, finfo);
+        }
+
+        free(wbuffer);
+        free(buffer);
+    }
+
+    if((result->tail) != NULL && result->tail->data->file_type == DIRECTORY) {
+        remove_last(result);
+    }
+    closedir(dir);
+}
+
+int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) {
+    wchar_t* buffer = parse_regex_pattern(wpattern);
+
+    regex_t reg;
+    char* pattern = wchtochs(buffer);
+    if(regcomp(&reg, pattern, REG_EXTENDED) != 0) {
+        free(pattern);
+        return -1;
+    }
+
+    char* start_dir = wchtochs(wstart_dir);
+    rfind_files(result, start_dir, reg);
+
+    free(buffer);
+    free(pattern);
+
+    return 1;
 }

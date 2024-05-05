@@ -1,9 +1,10 @@
 #pragma once
 
 #include <stdbool.h>
-#include <ncursesw/ncurses.h>
+#include <ncurses.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "menu.h"
 #include "file_types.h"
 #include "fwchar.h"
@@ -51,7 +52,7 @@
 
 typedef struct _TAB {
     wchar_t* directory;
-    int selected_item;
+    int select;
 } TAB;
 
 
@@ -61,12 +62,16 @@ typedef struct _FILE_PANEL {
     MENU *file_menu;
     WINDOW* menu_sub_win;
     WINDOW* parent_window;
-    List* files_info;
+    LIST* files_info;
     SORT_DIR sort_dir;
 
     TAB tabs[MAX_TABS];
+    MENU* tabs_panel;
+
     MENU* tabs_menu;
     int amount_tabs;
+
+    LIST* group;
 } FILE_PANEL;
 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num);
@@ -93,6 +98,12 @@ int rename_dir(FILE_PANEL* file_panel);
 void free_file_panel(FILE_PANEL* file_panel);
 
 //tabs
+bool delete_tab(FILE_PANEL* file_panel);
 bool save_tab(FILE_PANEL* file_panel);
 void load_tab(FILE_PANEL* file_panel, int prev_tab_num);
+void print_current_tab(FILE_PANEL* file_panel);
 
+MITEM** init_files(LIST* list);
+
+bool create_sym_link(FILE_PANEL* file_panel);
+bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep);

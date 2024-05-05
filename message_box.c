@@ -56,11 +56,11 @@ MSG_REQ show_msg(MSG_BOX* msg) {
         print_menu(menu);
         wrefresh(msg->window);
         if(msg->is_verified) {
-            wrefresh(menu->sub_window);
+            wrefresh(menu->subwin);
         }
         key = wgetch(msg->window);
         if(key == '\n' && msg->is_verified) {
-            if(menu->selected_item == 0) {
+            if(menu->select == 0) {
                 status = M_ALLOW;
             } else {
                 status = M_CANCEL;
@@ -84,7 +84,7 @@ MSG_REQ show_msg(MSG_BOX* msg) {
     wrefresh(msg->window);
 
     if(msg->is_verified) {
-        delwin(menu->sub_window);
+        delwin(menu->subwin);
         free_menu(menu);
     }
     free_msg(msg);

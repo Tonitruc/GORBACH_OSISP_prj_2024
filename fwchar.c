@@ -183,3 +183,35 @@ wchar_t* wcsscat(wchar_t* str1, wchar_t* str2) {
 
     return result;
 }
+
+wchar_t* parse_regex_pattern(wchar_t* wpattern) {
+    size_t size = wcslen(wpattern);
+    wchar_t* pattern = (wchar_t*)calloc(size * 2 + 1, sizeof(wchar_t));
+    int bi = 0;
+
+    if(wpattern[0] == L'*') {
+    // .*\.txt$
+        pattern[bi++] = L'.'; 
+        pattern[bi++] = L'*'; 
+        pattern[bi++] = L'\\'; 
+
+        for(int i = 1; i < size; i++) {
+            pattern[bi++] = wpattern[i]; 
+        }
+        pattern[bi++] = '$';
+    } 
+    else if(wpattern[size - 1] == L'*') {
+        pattern[bi++] = L'^'; 
+        for(int i = 0; i < size; i++) {
+            pattern[bi++] = wpattern[i]; 
+        }
+    }
+    else {
+        for(int i = 0; i < size; i++) {
+            pattern[bi++] = wpattern[i]; 
+        }
+    }
+
+    pattern[bi++] = '\0';
+    return pattern;
+}

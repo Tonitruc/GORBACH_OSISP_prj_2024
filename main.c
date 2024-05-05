@@ -10,26 +10,17 @@
 #include "menu.h"
 #include "text_box.h"
 #include "message_box.h"
+#include "wpanel.h"
 
 #define MIN_HEIGHT 15
 #define MIN_WIDTH 15
 
 #define AMOUNT_OF_FILE_PANEL 2
 
-typedef enum _PANEL_MODE {
-	FILE_INFO,
-	FILE_LIST,
-	FILE_VIEW
-} PANEL_MODE;
-
 //File panels
-FILE_PANEL* first_file_panel;
-PANEL_MODE first_panel_mode;
+WPANEL* wpanels[2];
+WPANEL* wpanel;
 
-FILE_PANEL* second_file_panel;
-PANEL_MODE second_panel_mode;
-
-FILE_PANEL* current_panel;
 //Menus for manage files
 #define AMOUNT_TOP_PANEL_ITEMS 3
 MENU* upper_panel;
@@ -116,53 +107,34 @@ int main() {
 			is_break = true;
 			close_app();
 		}
-		else if (key == 'm') {
-			show_panel(application[0]);
-			update_panels();
-			doupdate();
-		}
-		else if(key == 'n') {
-			hide_panel(application[0]);
-			update_panels();
-			doupdate();
-		} 
 		else if(key == KEY_MOUSE) {
 			MEVENT mevent;
 			if(getmouse(&mevent) == OK) {
-				if(current_panel != first_file_panel && wenclose(first_file_panel->panel, mevent.y, mevent.x)) {
-					current_panel = first_file_panel;
-					mouse_event_handler(current_panel, mevent);
+				if(wenclose(wpanel->dep->fpanel->panel, mevent.y, mevent.x)) {
+					wpanel = change_wpanel(wpanel);
 				} 
-				else if(current_panel != second_file_panel && wenclose(second_file_panel->panel, mevent.y, mevent.x)) {
-					current_panel = second_file_panel;
-					mouse_event_handler(current_panel, mevent);
-				}
-				else if(wenclose(upper_panel->sub_window, mevent.y, mevent.x) && mevent.bstate & BUTTON1_RELEASED) {
+				else if(wenclose(upper_panel->subwin, mevent.y, mevent.x) && mevent.bstate & BUTTON1_RELEASED) {
 					find_click_item(upper_panel, mevent);
-					wrefresh(upper_panel->sub_window);
+					wrefresh(upper_panel->subwin);
 					int choice;
-					if(upper_panel->selected_item == 0) {
+					if(upper_panel->select == 0) {
 						choice = show_setting_panel_window(0);
+						change_mode(wpanels[0], choice);
 					} 
-					else if(upper_panel->selected_item == 1) {
+					else if(upper_panel->select == 1) {
 						choice = show_command_window();
 					} 
-					else if(upper_panel->selected_item == 2) {
+					else if(upper_panel->select == 2) {
 						choice = show_setting_panel_window(1);
-						if(choice == 0) {
-							second_panel_mode = FILE_LIST;
-						}
-						else if(choice == 1) {
-							second_panel_mode = FILE_VIEW;
-						}
+						change_mode(wpanels[1], choice);
 					}
 				} else {
-					mouse_event_handler(current_panel, mevent);
+					mouse_event_handler(wpanel->fpanel, mevent);
 				}
 			}
 		}
 		else {
-			keyboard_event_handler(current_panel, key);
+			keyboard_event_handler(wpanel->fpanel, key);
 		} 
 
 		if(is_break)
@@ -188,13 +160,12 @@ bool init_app() {
 
 	INIT_BASE_WIN
 
-	first_file_panel = init_file_panel(stdscr, 0);
-	first_panel_mode = FILE_LIST;
-	
-	second_file_panel = init_file_panel(stdscr, 1);
-	second_panel_mode = FILE_LIST;
+	wpanels[0] = init_wpanel(init_file_panel(stdscr, 0));
+	wpanels[1] = init_wpanel(init_file_panel(stdscr, 1));
+	wpanels[0]->dep = wpanels[1];
+	wpanels[1]->dep = wpanels[0];
 
-	current_panel = first_file_panel;
+	wpanel = wpanels[0];
 
 	init_lower_panel();
 	init_upper_panel();
@@ -216,28 +187,28 @@ bool init_app() {
 
 
 bool resize_app() {
-    wresize(upper_panel->parent_window, 1, getmaxx(stdscr));
-    wresize(upper_panel->sub_window,1, getmaxx(stdscr));
+    wresize(upper_panel->parwin, 1, getmaxx(stdscr));
+    wresize(upper_panel->subwin,1, getmaxx(stdscr));
 
 	werase(stdscr);
     resize_menu(upper_panel);
 
-	werase(upper_panel->parent_window);
+	werase(upper_panel->parwin);
 	print_menu(upper_panel);
 
-	resize_file_panel(first_file_panel, 0);
-	resize_file_panel(second_file_panel, 1);
+	resize_wpanel(wpanels[0], 0);
+	resize_wpanel(wpanels[1], 1);
 
-    wresize(lower_panel->parent_window, 1, getmaxx(stdscr));
-	mvderwin(lower_panel->parent_window, LINES - 1, 0);
-	mvwin(lower_panel->parent_window, LINES - 1, 0);
+    wresize(lower_panel->parwin, 1, getmaxx(stdscr));
+	mvderwin(lower_panel->parwin, LINES - 1, 0);
+	mvwin(lower_panel->parwin, LINES - 1, 0);
 
-    wresize(lower_panel->sub_window, 1, getmaxx(stdscr));
-	mvderwin(lower_panel->sub_window, 0, 0);
-	mvwin(lower_panel->sub_window, LINES - 1, 0);
+    wresize(lower_panel->subwin, 1, getmaxx(stdscr));
+	mvderwin(lower_panel->subwin, 0, 0);
+	mvwin(lower_panel->subwin, LINES - 1, 0);
 
     resize_menu(lower_panel);
-	werase(lower_panel->parent_window);
+	werase(lower_panel->parwin);
 
 	print_menu(lower_panel);
 
@@ -245,8 +216,6 @@ bool resize_app() {
 }
 
 void close_app() {
-	free_file_panel(first_file_panel);
-	free_file_panel(second_file_panel);
 
 	free_menu(upper_panel);
 	free_menu(lower_panel);
@@ -258,23 +227,13 @@ void close_app() {
 }
 
 void refresh_app() {
-	wnoutrefresh(upper_panel->parent_window);
-	wnoutrefresh(upper_panel->sub_window);
+	wnoutrefresh(upper_panel->parwin);
+	wnoutrefresh(upper_panel->subwin);
 
-	if(first_panel_mode == FILE_LIST) {
-		refresh_file_panel(first_file_panel);
-	} else if(first_panel_mode == FILE_VIEW) {
+	refersh_wpanel(wpanels[0]);
+	refersh_wpanel(wpanels[1]);
 
-	}
-
-	if(second_panel_mode == FILE_LIST) {
-		refresh_file_panel(second_file_panel);
-	} else if(second_panel_mode == FILE_VIEW) {
-		show_file_data(first_file_panel, second_file_panel);
-		wnoutrefresh(second_file_panel->panel);
-	}
-
-	wnoutrefresh(lower_panel->parent_window);
+	wnoutrefresh(lower_panel->parwin);
 
 	doupdate();
 }
@@ -383,7 +342,7 @@ int show_command_window() {
 	while(status == -2) {
 		update_panels();
 		doupdate();
-		wrefresh(command_panel_menu->sub_window);
+		wrefresh(command_panel_menu->subwin);
 		key = getch();
 		if(key == KEY_DOWN) {
 			menu_driver(command_panel_menu, REQ_DOWN_ITEM);
@@ -405,7 +364,7 @@ int show_command_window() {
 				}
 			}
 		} else if(key == '\n' || key == KEY_ENTER) {
-			status = command_panel_menu->selected_item;
+			status = command_panel_menu->select;
 		}
 		else if(key == KEY_RESIZE) {
 			status = -1;
@@ -421,10 +380,10 @@ int show_command_window() {
 int show_setting_panel_window(int panel_num) {
 	if(panel_num == 0) {
 		mvwin(setting_panel_window, 1, 0);
-		mvwin(setting_panel_menu->sub_window, 2, 1);
+		mvwin(setting_panel_menu->subwin, 2, 1);
 	} else if(panel_num == 1) {
 		mvwin(setting_panel_window, 1, 37);
-		mvwin(setting_panel_menu->sub_window, 2, 38);
+		mvwin(setting_panel_menu->subwin, 2, 38);
 
 	}
 
@@ -435,7 +394,7 @@ int show_setting_panel_window(int panel_num) {
 	while(status == -2) {
 		update_panels();
 		doupdate();
-		wrefresh(setting_panel_menu->sub_window);
+		wrefresh(setting_panel_menu->subwin);
 		key = getch();
 		if(key == KEY_DOWN) {
 			menu_driver(setting_panel_menu, REQ_DOWN_ITEM);
@@ -457,7 +416,7 @@ int show_setting_panel_window(int panel_num) {
 				}
 			}
 		} else if(key == '\n' || key == KEY_ENTER) {
-			status = setting_panel_menu->selected_item;
+			status = setting_panel_menu->select;
 		}
 		else if(key == KEY_RESIZE) {
 			status = -1;
@@ -472,36 +431,4 @@ int show_setting_panel_window(int panel_num) {
 
 void show_file_info(WINDOW* window) {
 
-}
-
-void show_file_data(FILE_PANEL* mpanel, FILE_PANEL* spanel) {
-	wchar_t* file_name;
-	file_name = mpanel->file_menu->items[mpanel->file_menu->selected_item]->string;
-
-	FILE* file = fopen(wchtochs(file_name), "r");
-	werase(spanel->panel);
-	if(file == NULL) {
-		mvwprintw(spanel->panel, 1, 1, "Не удалось открыть файл %ls", file_name);
-	} else {
-		print_file_data(spanel->panel, file);
-	}
-
-	box(spanel->panel, 0, 0);
-}
-
-void print_file_data(WINDOW* window, FILE* file) {
-	char buffer;
-
-	for(int y = 1; y < getmaxy(window) - 1; y++) {
-		for(int x = 1; x < getmaxx(window) - 1; x++) {
-			if((buffer = fgetc(file)) == EOF) {
-				return;
-			} 
-
-			mvwprintw(window, y, x, "%c", buffer);
-			if(buffer == '\n') {
-				break;
-			}
-		}
-	}
 }

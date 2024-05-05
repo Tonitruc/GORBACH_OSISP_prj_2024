@@ -25,3 +25,4 @@ wchar_t* wcsscat(wchar_t* str1, wchar_t* str2);
 int wcompare(const void* wstr1, const void* wstr2);
 int wfcompare(const void* wstr1, const void* wstr2);
 int wicompare(const void* wstr1, const void* wstr2);
+wchar_t* parse_regex_pattern(wchar_t* wpattern);

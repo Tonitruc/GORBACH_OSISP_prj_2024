@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ncursesw/ncurses.h>
+#include <ncurses.h>
 #include <wchar.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,6 +15,7 @@
 #define COLOR_LIGHT_YELLOW 15
 #define COLOR_LIGHT_GREEN 16
 #define COLOR_DARK_BLUE 17
+#define COLOR_OLIVE 18
 
 #define MENU_GREEN 30
 #define MENU_YELLOW 31
@@ -35,6 +36,7 @@
 #define EXCEPTION_COLOR 42
 #define SLCTD_EXCEPTION_COLOR 43
 #define WARNING_BOX_COLOR 44
+#define MENU_TAB_PANEL 45
 
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"
@@ -47,3 +49,8 @@ void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_p
 void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair, int n);
 void recolor_str(WINDOW* win, int y, short color_pair);
 int start_app(const char* path, const char* args[]);
+
+#define wbrt_derwin(tab_win, SLCTD_EXCEPTION_COLOR) crt_derwin(tab_win, 1, 1, SLCTD_EXCEPTION_COLOR);
+
+WINDOW* crt_box_win(int height, int width, int y, int x, short color_pair, wchar_t* title);
+WINDOW* crt_derwin(WINDOW* window, int y, int x, short color_pair);

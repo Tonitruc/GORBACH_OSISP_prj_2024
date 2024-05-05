@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ncursesw/ncurses.h>
+#include <ncurses.h>
 #include <stdbool.h>
 #include "menu.h"
 #include "file_types.h"

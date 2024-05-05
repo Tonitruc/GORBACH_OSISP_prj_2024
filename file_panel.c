@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+//Init file panel
+
 bool init_file_menu(FILE_PANEL* file_panel, MITEM** items) {
     int row, column;
     getmaxyx(file_panel->panel, row, column);
@@ -25,26 +27,39 @@ bool init_file_menu(FILE_PANEL* file_panel, MITEM** items) {
 }
 
 void init_tabs_list(FILE_PANEL* file_panel) {
-	MITEM** tabs_items = (MITEM**)calloc(2, sizeof(MITEM*));
-	tabs_items[0] = init_menu_item(L"[ + ]");
+	MITEM** tabs_panel_items = (MITEM**)calloc(4, sizeof(MITEM*));
+    tabs_panel_items[0] = init_menu_item(L"[ ^ ]");
+	tabs_panel_items[1] = init_menu_item(L"[ + ]");
+	tabs_panel_items[2] = init_menu_item(L"[ - ]"); 
 
 	WINDOW* sub_window = derwin(file_panel->panel, 1, getmaxx(file_panel->panel) - 4, TAB_LIST_ROW, TAB_LIST_COL);
 
-	init_color(66, 160, 0, 580);
-	init_pair(66, COLOR_WHITE, 66);
-
 	SETTINGS_MENU set_menu = SPRT_INTERMEDIATE | NON_DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME;
-	file_panel->tabs_menu = init_menu(tabs_items, file_panel->panel, sub_window, GRID, set_menu);
-	file_panel->tabs_menu->sprt_sym = L' ';
-	file_panel->tabs_menu->slctd_item_color_pair = 66;
-	init_menu_format(file_panel->tabs_menu, 1, 1);
+	file_panel->tabs_panel = init_menu(tabs_panel_items, file_panel->panel, sub_window, GRID, set_menu);
+	file_panel->tabs_panel->sprt_sym = L' ';
+	file_panel->tabs_panel->slctd_item_color_pair = MENU_TAB_PANEL;
+	init_menu_format(file_panel->tabs_panel, 1, 3);
+
+	print_menu(file_panel->tabs_panel);
 
     file_panel->amount_tabs = 0;
-	print_menu(file_panel->tabs_menu);
+
+    WINDOW* tab_win = crt_box_win(12, 40, 5, getcurx(file_panel->panel) + 2, SLCTD_EXCEPTION_COLOR, L"");
+    WINDOW* subwin = wbrt_derwin(tab_win, SLCTD_EXCEPTION_COLOR);
+
+    MITEM** tabs_items = (MITEM**)calloc(1, sizeof(MITEM*));
+    set_menu = NONE_SPRT | DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME;
+	file_panel->tabs_menu = init_menu(tabs_items, tab_win, subwin, GRID, set_menu);
+	file_panel->tabs_menu->slctd_item_color_pair = TOP_PANEL_COLOR;
+	init_menu_format(file_panel->tabs_menu, 10, 1);
+
+    print_menu(file_panel->tabs_menu);
 }
 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     FILE_PANEL* file_panel = (FILE_PANEL*)calloc(1, sizeof(FILE_PANEL));
+    file_panel->files_info = init_list();
+    file_panel->group = init_list();
 
     int height, width, starty, startx;
 	FILE_PANEL_SIZE(height, width);
@@ -61,18 +76,21 @@ FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     init_file_menu(file_panel, dir_file);
 
     init_tabs_list(file_panel);
-
     return file_panel;
 }
+
+//update file panel
 
 void refresh_file_panel(FILE_PANEL* file_panel) {
     box(file_panel->panel, 0, 0);
     print_selected_file_space(file_panel);
     print_tab_space(file_panel);
+    print_current_file(file_panel, true);
+
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
-    unprint_menu(file_panel->tabs_menu);
-    print_menu(file_panel->tabs_menu);
+    unprint_menu(file_panel->tabs_panel);
+    print_menu(file_panel->tabs_panel);
     wrefresh(file_panel->panel);
 }
 
@@ -90,221 +108,16 @@ bool resize_file_panel(FILE_PANEL* file_panel, int num)  {
     mvderwin(file_panel->menu_sub_win, FILE_MENU_START_ROW, FILE_MENU_START_COL);
     mvwin(file_panel->menu_sub_win, starty + FILE_MENU_START_ROW, startx + FILE_MENU_START_COL);
 
-    wresize(file_panel->tabs_menu->sub_window, 1, getmaxx(file_panel->panel) - 4);    
-    mvderwin(file_panel->tabs_menu->sub_window, TAB_LIST_ROW, TAB_LIST_COL);
-    mvwin(file_panel->tabs_menu->sub_window, TAB_LIST_ROW, startx + TAB_LIST_COL);
+    wresize(file_panel->tabs_panel->subwin, 1, getmaxx(file_panel->panel) - 4);    
+    mvderwin(file_panel->tabs_panel->subwin, TAB_LIST_ROW, TAB_LIST_COL);
+    mvwin(file_panel->tabs_panel->subwin, starty + TAB_LIST_ROW, startx + TAB_LIST_COL);
 
     resize_menu(file_panel->file_menu);
-    resize_menu(file_panel->tabs_menu);
+    resize_menu(file_panel->tabs_panel);
     werase(file_panel->panel);
 
-    return true;
-}
-
-wchar_t* get_select_file(FILE_PANEL* file_panel) {
-    size_t cur_dir_size = wcslen(file_panel->current_directory);
-    wchar_t* cur_file;
-    if(wcscmp(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string, DIR_RETURN) == 0) {
-        for(int i = cur_dir_size - 1; file_panel->current_directory[i] != L'/'; i--) {
-            cur_dir_size--;
-        }
-        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
-        swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
-    } else {
-        cur_dir_size += file_panel->file_menu->items[file_panel->file_menu->selected_item]->size + 2;
-        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
-
-        swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
-            file_panel->file_menu->items[file_panel->file_menu->selected_item]->string);
-    }
-
-    return cur_file;
-}
-
-MITEM** list_to_mitem(List* head) {
-    MITEM **items = (MITEM**)calloc(sizeof_list(head) * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
-
-    List* temp = head;
-    int num = 0;
-    while(temp != NULL) {
-        for(int j = 0; j < FILE_MENU_FORMAT_COL; j++, num++) {
-            if(j == 0) {
-                items[num] = init_menu_item(temp->data->file_name); 
-                switch (temp->data->file_type)
-                {
-                case DIRECTORY: {items[num]->color = MENU_YELLOW; items[num]->pnt_sym = '/'; break; }
-                case PDF: {items[num]->color = MENU_RED; items[num]->pnt_sym = ' '; break; }
-                case DOC: {items[num]->color = MENU_BLUE; break; }
-                case IMAGE: {items[num]->color = MENU_GREEN; break; }
-                case ARCHIVE: {items[num]->color = MENU_GRAY; break;}
-                default: items[num]->color = MENU_WHITE; items[num]->pnt_sym = '*';
-                }
-            }
-            else if(j == 1) {
-                char buffer[20];
-                sprintf(buffer, "%ld", temp->data->size_kb);
-                items[num] = init_menu_item(cstowchs(buffer));    
-            }
-            else if(j == 2) {
-                items[num] = init_menu_item(wtime(temp->data->edit_time));   
-            }
-        }
-        temp = temp->next;    
-    }
-
-    return items;
-}
-
-MITEM** load_dir(FILE_PANEL* file_panel) {
-    char* cur_dir = wchtochs(file_panel->current_directory);
-    List* head = read_dir(cur_dir);
-    chdir(cur_dir);
-    file_panel->files_info = head;
-
-    MITEM** list_files = list_to_mitem(head);
-
-    free(cur_dir);
-    return list_files;
-}
-
-bool change_dir(FILE_PANEL* file_panel) {
-    wchar_t* new_dir = get_select_file(file_panel);
-
-    free(file_panel->current_directory);
-    free_list(file_panel->files_info);
-    file_panel->current_directory = new_dir;
-
-    MITEM** new_items = load_dir(file_panel);
-    set_new_items(file_panel->file_menu, new_items);
-    unprint_menu(file_panel->file_menu);
-
-    return true;
-}
-
-
-bool open_file(FILE_PANEL* file_panel) {
-    wchar_t* cur_file = get_select_file(file_panel);
-    FILE_TYPE file_type = get_file_type(cur_file);
-    const char* args[] = { wchtochs(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string), NULL};
-
-
-    switch(file_type) {
-        case DIRECTORY: {
-            if(change_dir(file_panel)) {
-                print_current_directory(file_panel, true);
-                print_menu(file_panel->file_menu);
-            }
-            break;
-        }
-        case IMAGE: 
-        case DOC: 
-        case PDF: {
-            start_app("xdg-open", args);
-            break;
-        }
-        default: break;
-    }
-
-    return true;
-}
-
-bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
-    switch (mevent.bstate)
-    {
-        case BUTTON5_PRESSED: {
-		    menu_driver(file_panel->file_menu, REQ_DOWN_ITEM);
-            break;	
-		}
-		case BUTTON4_PRESSED: {
-			menu_driver(file_panel->file_menu, REQ_UP_ITEM);	
-            break;
-		}
-        case BUTTON1_RELEASED: {
-            REQ_KEY req_key;
-            int prev_tabs = file_panel->tabs_menu->selected_item;
-            req_key = find_click_item(file_panel->tabs_menu, mevent);
-            if(req_key != NON_REQ && ((req_key == SAME_ITEM && file_panel->amount_tabs == 0)
-                || file_panel->tabs_menu->selected_item == file_panel->amount_tabs)) {
-                if(!save_tab(file_panel)) {
-                    file_panel->tabs_menu->selected_item = prev_tabs;
-                }
-                return true;
-            } else if (req_key == ITEM_CLICKED) {
-                load_tab(file_panel, prev_tabs);
-                return true;
-            } 
-            req_key = find_click_item(file_panel->file_menu, mevent);
-            if(req_key == COLUMN_CLICKED) {
-                file_panel->sort_dir = file_panel->sort_dir == 1? 0 : 1;
-                if(file_panel->file_menu->sorted_col == 0) {
-                    sort_list(file_panel->files_info->next, get_tail(file_panel->files_info), finfo_name_compare, file_panel->sort_dir);
-                } 
-                else if(file_panel->file_menu->sorted_col == 1) {
-                    sort_list(file_panel->files_info->next, get_tail(file_panel->files_info), finfo_size_compare, file_panel->sort_dir);
-                }
-                else if(file_panel->file_menu->sorted_col == 2) {
-                    sort_list(file_panel->files_info->next, get_tail(file_panel->files_info), finfo_time_compare, file_panel->sort_dir);
-                }
-                
-                set_new_items(file_panel->file_menu, list_to_mitem(file_panel->files_info));
-                unprint_menu(file_panel->file_menu);
-                print_menu(file_panel->file_menu);
-            }
-            break;
-		}
-        default: break;
-    }
-
-    print_current_file(file_panel, true);
-    wrefresh(file_panel->panel);
-
-    return true;
-}
-
-bool keyboard_event_handler(FILE_PANEL *file_panel, int key) {
-    switch (key)
-    {
-        case KEY_DOWN: {
-			menu_driver(file_panel->file_menu, REQ_DOWN_ITEM);
-            break;	
-		}
-		case KEY_UP: {
-			menu_driver(file_panel->file_menu, REQ_UP_ITEM);	
-            break;
-		}
-        case '\n': {
-            open_file(file_panel);
-            break;
-        }
-        case '8': {
-			del_file(file_panel);
-            break;
-		}
-		case '6': {
-			create_dir(file_panel);
-            break;
-		}
-		case '2': {
-			correction_file(file_panel);
-            break;
-		}
-		case '3': {
-			open_file(file_panel);
-            break;
-		}
-		case '7': {
-			rename_dir(file_panel);
-            break;
-		}
-        case '4': {
-			dialog_win_cm(file_panel, L" Перенос ");
-            break;
-		}
-        default: break;
-    }
-
-    print_current_file(file_panel, true);
-    wrefresh(file_panel->panel);
+    mvwin(file_panel->tabs_menu->parwin, 5, getcurx(file_panel->panel) + 2);
+    mvwin(file_panel->tabs_menu->subwin, 6, getcurx(file_panel->panel) + 3);
 
     return true;
 }
@@ -322,6 +135,20 @@ void print_selected_file_space(FILE_PANEL* file_panel) {
     print_current_file(file_panel, false);
 }
 
+void print_current_tab(FILE_PANEL* file_panel) {
+    unprint_menu(file_panel->tabs_panel);
+    free(file_panel->tabs_panel->items[0]);
+
+    if(file_panel->amount_tabs == 0) {
+        file_panel->tabs_panel->items[0] = init_menu_item(L"[ ^ ]");
+    } else {
+        file_panel->tabs_panel->items[0] = init_menu_item(file_panel->tabs_menu->iselect->string);
+    }
+
+    calc_item_coord(file_panel->tabs_panel);
+    print_menu(file_panel->tabs_panel);
+}
+
 void print_current_file(FILE_PANEL *file_panel, bool with_clear) {
     int y, x;
     CURRENT_FILE_POS(file_panel->panel, y, x);
@@ -331,7 +158,7 @@ void print_current_file(FILE_PANEL *file_panel, bool with_clear) {
     }
 
     bool is_free = false;
-    wchar_t* buffer = file_panel->file_menu->items[file_panel->file_menu->selected_item]->string;
+    wchar_t* buffer = file_panel->file_menu->iselect->string;
     if(wcslen(buffer) > CUR_FILE_SIZE(file_panel->panel)) {
         buffer = standart_abreviated(buffer, CUR_FILE_SIZE(file_panel->panel));
         is_free = true;
@@ -380,6 +207,356 @@ void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
     }
 }
 
+//help function
+
+wchar_t* get_select_file(FILE_PANEL* file_panel) {
+    size_t cur_dir_size = wcslen(file_panel->current_directory);
+    wchar_t* cur_file;
+    if(wcscmp(file_panel->file_menu->iselect->string, DIR_RETURN) == 0) {
+        for(int i = cur_dir_size - 1; file_panel->current_directory[i] != L'/'; i--) {
+            cur_dir_size--;
+        }
+        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+        swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
+    } else {
+        cur_dir_size += file_panel->file_menu->iselect->size + 2;
+        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+
+        swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
+            file_panel->file_menu->iselect->string);
+    }
+
+    return cur_file;
+}
+
+MITEM** init_files(LIST* list) {
+    MITEM **items = (MITEM**)calloc(list->size * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
+
+    LIST_NODE* temp = list->head;
+    int num = 0;
+    while(temp != NULL) {
+        for(int j = 0; j < FILE_MENU_FORMAT_COL; j++, num++) {
+            if(j == 0) {
+                items[num] = init_menu_item(temp->data->file_name); 
+                switch (temp->data->file_type)
+                {
+                case DIRECTORY: {items[num]->color = MENU_YELLOW; items[num]->pnt_sym = '/'; break; }
+                case PDF: {items[num]->color = MENU_RED; items[num]->pnt_sym = ' '; break; }
+                case DOC: {items[num]->color = MENU_BLUE; break; }
+                case IMAGE: {items[num]->color = MENU_GREEN; break; }
+                case ARCHIVE: {items[num]->color = MENU_GRAY; break;}
+                case SYMBOL_LINK: {items[num]->color = MENU_BLUE; items[num]->pnt_sym = '@'; break;}
+                default: items[num]->color = MENU_WHITE; items[num]->pnt_sym = '*';
+                }
+            }
+            else if(j == 1) {
+                char buffer[20];
+                sprintf(buffer, "%ld", temp->data->size_kb);
+                items[num] = init_menu_item(cstowchs(buffer));    
+            }
+            else if(j == 2) {
+                items[num] = init_menu_item(wtime(temp->data->edit_time));   
+            }
+        }
+        temp = temp->next;    
+    }
+
+    return items;
+}
+
+//view directory fucnitons
+
+MITEM** load_dir(FILE_PANEL* file_panel) {
+    char* cur_dir = wchtochs(file_panel->current_directory);
+    LIST* list = read_dir(cur_dir);
+    chdir(cur_dir);
+    file_panel->files_info = list;
+
+    MITEM** list_files = init_files(list);
+
+    free(cur_dir);
+    return list_files;
+}
+
+bool change_dir(FILE_PANEL* file_panel) {
+    wchar_t* new_dir = get_select_file(file_panel);
+
+    free(file_panel->current_directory);
+    free_list(file_panel->files_info);
+    file_panel->current_directory = new_dir;
+
+    MITEM** new_items = load_dir(file_panel);
+    set_new_items(file_panel->file_menu, new_items);
+    unprint_menu(file_panel->file_menu);
+
+    return true;
+}
+
+bool open_file(FILE_PANEL* file_panel) {
+    wchar_t* cur_file = get_select_file(file_panel);
+    FILE_TYPE file_type = get_file_type(cur_file);
+    const char* args[] = { wchtochs(file_panel->file_menu->iselect->string), NULL};
+
+    switch(file_type) {
+        case DIRECTORY: {
+            if(change_dir(file_panel)) {
+                print_current_directory(file_panel, true);
+                print_menu(file_panel->file_menu);
+            }
+            break;
+        }
+        case IMAGE: 
+        case DOC: 
+        case PDF: {
+            start_app("xdg-open", args);
+            break;
+        }
+        default: break;
+    }
+
+    return true;
+}
+
+//functions for work with tabs
+
+int chooce_tab(FILE_PANEL* file_panel) {
+    overlay(file_panel->tabs_menu->parwin, file_panel->panel);
+    touchwin(file_panel->tabs_menu->parwin);
+    wrefresh(file_panel->tabs_menu->parwin);
+    print_menu(file_panel->tabs_menu);
+
+    int choice = -1;
+    while(choice == -1) {
+        wrefresh(file_panel->tabs_menu->subwin);
+        int key = wgetch(file_panel->tabs_menu->parwin);
+        if(key == KEY_DOWN) {
+            menu_driver(file_panel->tabs_menu, REQ_DOWN_ITEM);
+        } 
+        else if(key == KEY_UP) {
+            menu_driver(file_panel->tabs_menu, REQ_UP_ITEM);
+        }
+        else if(key == KEY_RESIZE) {
+            return choice;
+        }
+        else if(key == '\n' || key == KEY_ENTER) {
+           choice = file_panel->tabs_menu->select;
+        } 
+        else if(key == KEY_MOUSE) {
+            MEVENT mevent;
+            if(getmouse(&mevent) == OK) {
+                if(mevent.bstate & BUTTON1_RELEASED) {
+                    find_click_item(file_panel->tabs_menu, mevent);
+                }
+                else if(mevent.bstate & BUTTON5_PRESSED) {
+                    menu_driver(file_panel->tabs_menu, REQ_DOWN_ITEM);
+                } 
+                else if(mevent.bstate & BUTTON4_PRESSED) {
+                    menu_driver(file_panel->tabs_menu, REQ_UP_ITEM);
+                } 
+                else if(!wenclose(file_panel->tabs_menu->parwin, mevent.y, mevent.x)) {
+                    return choice;
+                }
+            }
+        }
+    }
+
+    return choice;
+}
+
+bool save_tab(FILE_PANEL* file_panel) {
+    if(file_panel->amount_tabs == MAX_TABS) {
+        MSG_BOX* msg = init_message_box(10, 30, L"Ошибка", L"Максимум 10 влкадок", false);
+        show_msg(msg);
+        return false;
+    }
+
+	TEXT_BOX* tabs_name = init_text_box(stdscr, 6, 40, 0, 0, L" ВВОД ", L"Введите имя вкладки", NULL, true);
+	char* name;
+	TEXT_REQ status = input_text_box(tabs_name, &name);
+
+	if(status == T_CANCEL) {
+		return false;
+	} else {
+		wchar_t* buffer = cstowchs(name);
+		wchar_t* buffer2 = (wchar_t*)calloc(wcslen(buffer) + 6, sizeof(wchar_t));
+		swprintf(buffer2, wcslen(buffer) + 5, L"[ %ls ]", buffer);
+		add_item(file_panel->tabs_menu, init_menu_item(buffer2), file_panel->amount_tabs++);
+
+		file_panel->tabs[file_panel->amount_tabs - 1].directory = (wchar_t*)calloc(wcslen(file_panel->current_directory) + 1, sizeof(wchar_t));
+		file_panel->tabs->select = file_panel->file_menu->select;
+		wcscpy(file_panel->tabs[file_panel->amount_tabs - 1].directory , file_panel->current_directory);
+
+		unprint_menu(file_panel->tabs_menu);
+		print_menu(file_panel->tabs_menu);
+
+		free(buffer);
+	}
+
+	return true;
+}
+
+bool delete_tab(FILE_PANEL* file_panel) {
+    unprint_menu(file_panel->tabs_menu);
+    if(file_panel->amount_tabs == 0) {
+        MSG_BOX* msg = init_message_box(5, 30, L"Ошибка", L"Ни одной вкладки не создано", false);
+        show_msg(msg);
+        return false;
+    } 
+
+    delete_item(file_panel->tabs_menu, file_panel->tabs_menu->select);
+    free(file_panel->tabs[file_panel->tabs_menu->select].directory);
+    for(int i = file_panel->tabs_menu->select; i < MAX_TABS - 1; i++) {
+        file_panel->tabs[i] = file_panel->tabs[i + 1];
+    }
+
+    calc_item_coord(file_panel->tabs_menu);
+	print_menu(file_panel->tabs_menu);
+    file_panel->amount_tabs--;
+
+	return true;
+}
+
+void load_tab(FILE_PANEL* file_panel, int prev_tab_num) {
+    if(prev_tab_num != -1) {
+        file_panel->tabs[prev_tab_num].directory = file_panel->current_directory;
+        file_panel->tabs[prev_tab_num].select = file_panel->file_menu->select;
+    } 
+    int select = 0;
+    if(file_panel->amount_tabs == 0) {
+        file_panel->current_directory = get_cur_dir();
+    } else {
+        file_panel->current_directory = (wchar_t*)calloc(wcslen(file_panel->tabs[file_panel->tabs_menu->select].directory) + 1, sizeof(wchar_t));
+        wcscpy(file_panel->current_directory, file_panel->tabs[file_panel->tabs_menu->select].directory);
+        select = file_panel->tabs[file_panel->tabs_menu->select].select;
+    }
+
+    MITEM** items = load_dir(file_panel);
+    set_new_items(file_panel->file_menu, items);
+    file_panel->file_menu->select = select;
+
+    calc_item_coord(file_panel->file_menu);
+    print_menu(file_panel->file_menu);
+}
+
+//key and moust handlers
+
+bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
+    switch (mevent.bstate)
+    {
+        case BUTTON5_PRESSED: {
+		    menu_driver(file_panel->file_menu, REQ_DOWN_ITEM);	
+            break;	
+		}
+		case BUTTON4_PRESSED: {
+			menu_driver(file_panel->file_menu, REQ_UP_ITEM);	
+            break;
+		}
+        case BUTTON1_RELEASED: {
+            REQ_KEY req_key;
+            int prev_tab = file_panel->tabs_menu->select;
+            req_key = find_click_item(file_panel->tabs_panel, mevent);
+            if(req_key != NON_REQ && file_panel->tabs_panel->select == 0) {
+                if(chooce_tab(file_panel) != -1) {
+                    load_tab(file_panel, prev_tab);
+                    print_current_tab(file_panel);
+                }
+                return true;
+            }
+            else if(req_key != NON_REQ && file_panel->tabs_panel->select == 1) {
+                if(save_tab(file_panel)) {
+                    file_panel->tabs_menu->select = file_panel->amount_tabs - 1;
+                    file_panel->tabs_panel->select = 0;
+                    print_current_tab(file_panel);
+                }
+                return true;
+            }
+            else if (file_panel->tabs_panel->select == 2) {
+                if(delete_tab(file_panel)) {
+                    file_panel->tabs_menu->select = 0;
+                    load_tab(file_panel, -1);
+                    print_current_tab(file_panel);
+                    file_panel->tabs_panel->select = 0;
+                }
+                return true;
+            } 
+
+            req_key = find_click_item(file_panel->file_menu, mevent);
+            if(req_key == COLUMN_CLICKED) {
+                file_panel->sort_dir = file_panel->sort_dir == 1? 0 : 1;
+                if(file_panel->file_menu->sorted_col == 0) {
+                    sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_name_compare, file_panel->sort_dir);
+                } 
+                else if(file_panel->file_menu->sorted_col == 1) {
+                    sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_size_compare, file_panel->sort_dir);
+                }
+                else if(file_panel->file_menu->sorted_col == 2) {
+                    sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_time_compare, file_panel->sort_dir);
+                }
+                
+                set_new_items(file_panel->file_menu, init_files(file_panel->files_info));
+                unprint_menu(file_panel->file_menu);
+                print_menu(file_panel->file_menu);
+            }
+            break;
+		}
+        default: break;
+    }
+
+    return true;
+}
+
+bool keyboard_event_handler(FILE_PANEL *file_panel, int key /* FILE_PANEL* dep */) {
+    switch (key)
+    {
+        case KEY_DOWN: {
+			menu_driver(file_panel->file_menu, REQ_DOWN_ITEM);
+            break;	
+		}
+		case KEY_UP: {
+			menu_driver(file_panel->file_menu, REQ_UP_ITEM);	
+            break;
+		}
+        case KEY_SF: {
+            if(file_panel->file_menu->select != 0) {
+                menu_driver(file_panel->file_menu, REQ_DOWN_ITEM | GROUP_ACT);
+            } else {
+			    menu_driver(file_panel->file_menu, REQ_DOWN_ITEM);
+            }
+            break;
+        }
+        case KEY_SR: {
+            if(file_panel->file_menu->select != 0) {
+                menu_driver(file_panel->file_menu, REQ_UP_ITEM | GROUP_ACT);
+            }
+            break;
+        }
+        case '\n': {
+            open_file(file_panel);
+            break;
+        }
+		case '6': {
+			create_dir(file_panel);
+            break;
+		}
+		case '2': {
+			correction_file(file_panel);
+            break;
+		}
+		case '3': {
+			open_file(file_panel);
+            break;
+		}
+        default: break;
+    }
+
+    print_current_file(file_panel, true);
+    wrefresh(file_panel->panel);
+
+    return true;
+}
+
+//file CRUD
+/*
 int del_file(FILE_PANEL* file_panel) {
     int status = -1;
     wchar_t* buffer = get_select_file(file_panel);
@@ -388,8 +565,14 @@ int del_file(FILE_PANEL* file_panel) {
     set_color_msg(msg, WARNING_BOX_COLOR);
     status = show_msg(msg);
 
+    if(file_panel->file_menu->select == 0) {
+        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Нельзя удалить /..", false);
+        show_msg(exp);
+    }
+
     if(status != -1) {
-        status = delete_file(buffer);
+        bool is_dir = get_file_type(buffer) == DIRECTORY;
+        status = delete_file(buffer, is_dir);
         if(status != 0) {
             MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Не удалось удалить файл", false);
             show_msg(exp);
@@ -403,7 +586,7 @@ int del_file(FILE_PANEL* file_panel) {
     print_menu(file_panel->file_menu);
 
     return status;
-}
+} */
 
 int create_dir(FILE_PANEL* file_panel) {
     int status = -1;
@@ -454,12 +637,12 @@ bool correction_file(FILE_PANEL* file_panel) {
         show_msg(msg);
         return false;
     }
-    const char* args[] = { wchtochs(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string), NULL};
+    const char* args[] = { wchtochs(file_panel->file_menu->iselect->string), NULL};
     start_app("nano", args);
 
     return true;
 }
-
+ /*
 int rename_dir(FILE_PANEL* file_panel) {
     int status = -1;
     TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L"Новое имя", L"Ведите имя файла", UNIX_FILE_NAME_PATTERN, true);
@@ -481,11 +664,11 @@ int rename_dir(FILE_PANEL* file_panel) {
         wchar_t* wname = cstowchs(name);
         size_t new_size = wcslen(wname) + wcslen(file_panel->current_directory) + 2;
         wchar_t* new_path = (wchar_t*)calloc(new_size, sizeof(wchar_t));
-        size_t old_size = file_panel->file_menu->items[file_panel->file_menu->selected_item]->size + wcslen(file_panel->current_directory) + 2;
+        size_t old_size = file_panel->file_menu->iselect->size + wcslen(file_panel->current_directory) + 2;
         wchar_t* old_path = (wchar_t*)calloc(old_size, sizeof(wchar_t));
         swprintf(new_path, new_size, L"%ls/%ls", file_panel->current_directory, wname);
         swprintf(new_path, old_size, L"%ls/%ls", file_panel->current_directory, wname);
-        status = move_file(file_panel->file_menu->items[file_panel->file_menu->selected_item]->string, new_path);
+        status = move_file(file_panel->file_menu->iselect->string, new_path);
         if(status != 1) {
             MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Каталог уже существует", false);
             show_msg(exp);
@@ -505,14 +688,7 @@ int rename_dir(FILE_PANEL* file_panel) {
 }
 
 int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
-    int start_x, start_y;
-    CENTER_SCR(start_y, start_x);
-    WINDOW* window = newwin(15, 40, start_y - 5, start_x - 20);
-    keypad(window, true);
-    wattron(window, COLOR_PAIR(TOP_PANEL_COLOR));
-    wbkgd(window, COLOR_PAIR(TOP_PANEL_COLOR));
-    box(window, 0, 0);
-    mvwprintw(window, 0, (getmaxx(window) / 2) - (wcslen(title) / 2) - 1, "%ls", title);
+    WINDOW* window = cwbcrt_win(15, 40, title);
 
     TEXT_BOX* from = init_text_box(window, 2, 38, 2, 1, L"", L"из:", UNIX_FILE_NAME_PATTERN, false);
     from->box = false;
@@ -526,34 +702,24 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
     TOGGLE_BUTTON* save_atr = create_tbutton(9, 3, window, L" Сохранить атрибуты", CHECKED);
     TOGGLE_BUTTON* otn_link = create_tbutton(11, 3, window, L" Изменять относительные ссылки", UNCHECKED);
 
-    WINDOW* subwin = derwin(window, 1, 38, 14, 1);
-    MITEM **items = (MITEM**)calloc(3, sizeof(MITEM));
-    items[0] = init_menu_item(L"[ ОК ]");
-    items[1] = init_menu_item(L"[ ОТМЕНА ]");
-
-    SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME | ALLIGMENT_CENTER;
-    MENU* menu = init_menu(items, window, subwin, GRID, set_menu);
-    init_menu_format(menu, 1, 2);
-    menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
-    set_columns_size(menu, (double*)2, 0.5, 0.5);
+    MENU* menu = verify_menu(window);
 
     print_menu(menu);
 
-    char* from_str;
-    char* to_str;
+    char* from_str, * to_str;
 
     int key; int status = -2;
     while(status == -2) {
         wnoutrefresh(window);
-        wnoutrefresh(subwin);
+        wnoutrefresh(menu->subwin);
         doupdate();
 
         key = wgetch(window);
         if(key == '\n' || key == KEY_ENTER) {
-            if(menu->selected_item == 0) {
+            if(menu->select == 0) {
                 status = 1;
             }
-            else if(menu->selected_item == 1) {
+            else if(menu->select == 1) {
                 status = -1;
             }
         } 
@@ -596,54 +762,94 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
     return status;
 }
 
+bool create_sym_link(FILE_PANEL* file_panel) {
+    WINDOW* window = cwbcrt_win(9, 80, L"Символьная ссылка");
+
+    MENU* menu = verify_menu(window);
+    print_menu(menu);
+
+    TEXT_BOX* from = init_text_box(window, 2, 78, 2, 1, L"", L"Имя файла:", UNIX_FILE_NAME_PATTERN, false);
+    from->box = false;
+    set_start_text(from, get_select_file(file_panel));
+    show_text_box(from);
+
+    TEXT_BOX* to = init_text_box(window, 2, 78, 4, 1, L"", L"Имя ссылки:", UNIX_FILE_NAME_PATTERN, false);
+    to->box = false;
+    show_text_box(to);
+
+    char *from_str, *to_str;
+
+    int key; int status = -2;
+    while(status == -2) {
+        wnoutrefresh(window);
+        wnoutrefresh(menu->subwin);
+        doupdate();
+
+        key = wgetch(window);
+        if(key == '\n' || key == KEY_ENTER) {
+            if(menu->select == 0) {
+                create_slnk(cstowchs(from_str), cstowchs(to_str));
+                set_new_items(file_panel->file_menu, load_dir(file_panel));
+                status = 1;
+            }
+            else if(menu->select == 1) {
+                status = -1;
+            }
+        } 
+        else if(key == KEY_LEFT) {
+            menu_driver(menu, REQ_LEFT_ITEM);
+        }
+        else if(key == KEY_RIGHT) {
+            menu_driver(menu, REQ_RIGHT_ITEM);
+        }
+        else if(key == KEY_MOUSE) {
+            MEVENT mevent;
+            if(getmouse(&mevent) == OK) {
+                if(mevent.bstate & BUTTON1_RELEASED) {
+                    if(find_click_item(menu, mevent) != NON_REQ) {
+                        continue;
+                    }
+                    if(wenclose(from->form->sub, mevent.y, mevent.x)) {
+                        input_text_box(from, &from_str);
+                    } 
+                    else if(wenclose(to->form->sub, mevent.y, mevent.x)) {
+                        input_text_box(to, &to_str);
+                    }
+                }
+            }
+        }
+    }
+    
+    return status;
+}
+
+bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep) {
+    wchar_t* copy_file = get_select_file(file_panel);
+    size_t size = wcslen(dep->current_directory) + wcslen(file_panel->file_menu->iselect->string) + 2;
+    wchar_t* new_dir = (wchar_t*)calloc(size, sizeof(wchar_t));
+    swprintf(new_dir, size, L"%ls/%ls", dep->current_directory, file_panel->file_menu->iselect->string);
+
+    int status = dialog_win_cm(file_panel, L" КОПИРОВАНИЕ ");
+    if(status != -1) {
+        if(get_file_type(copy_file) == DIRECTORY) {
+            status = cpy_dir(copy_file, new_dir, false);
+            mvprintw(0, 0, "FUKC");
+            refresh();
+        } else {
+            status = cpy_file(copy_file, new_dir, false);
+        }
+        if(status != 0) {
+                    MSG_BOX* msg = init_message_box(5, 40, L"ERROR", L"SUCK", false);
+        show_msg(msg);
+        } else {
+            set_new_items(dep->file_menu, load_dir(dep));
+        }
+    } else {
+        MSG_BOX* msg = init_message_box(5, 40, L"ERROR", L"SUCK", false);
+        show_msg(msg);
+    }
+}
+
 void free_file_panel(FILE_PANEL* file_panel) {
 
-}
-
-bool save_tab(FILE_PANEL* file_panel) {
-    if(file_panel->amount_tabs == MAX_TABS) {
-        MSG_BOX* msg = init_message_box(10, 30, L"Ошибка", L"Максимум 10 влкадок", false);
-        show_msg(msg);
-        return false;
-    }
-
-	TEXT_BOX* tabs_name = init_text_box(stdscr, 6, 40, 0, 0, L" ВВОД ", L"Введите имя вкладки", NULL, true);
-	char* name;
-	TEXT_REQ status = input_text_box(tabs_name, &name);
-
-	if(status == T_CANCEL) {
-		return false;
-	} else {
-		wchar_t* buffer = cstowchs(name);
-		wchar_t* buffer2 = (wchar_t*)calloc(wcslen(buffer) + 6, sizeof(wchar_t));
-		swprintf(buffer2, wcslen(buffer) + 5, L"[ %ls ]", buffer);
-		add_item(file_panel->tabs_menu, init_menu_item(buffer2), file_panel->amount_tabs++);
-		init_menu_format(file_panel->tabs_menu, 1, file_panel->amount_tabs + 1);
-
-		file_panel->tabs[file_panel->amount_tabs - 1].directory = (wchar_t*)calloc(wcslen(file_panel->current_directory) + 1, sizeof(wchar_t));
-		file_panel->tabs->selected_item = file_panel->file_menu->selected_item;
-		wcscpy(file_panel->tabs[file_panel->amount_tabs - 1].directory , file_panel->current_directory);
-
-		unprint_menu(file_panel->tabs_menu);
-		print_menu(file_panel->tabs_menu);
-
-		free(buffer);
-	}
-
-	return true;
-}
-
-void load_tab(FILE_PANEL* file_panel, int prev_tab_num) {
-    file_panel->tabs[prev_tab_num].directory = file_panel->current_directory;
-    file_panel->tabs[prev_tab_num].selected_item = file_panel->file_menu->selected_item;
-
-    file_panel->current_directory = (wchar_t*)calloc(wcslen(file_panel->tabs[file_panel->tabs_menu->selected_item].directory) + 1, sizeof(wchar_t));
-    wcscpy(file_panel->current_directory, file_panel->tabs[file_panel->tabs_menu->selected_item].directory);
-
-    MITEM** items = load_dir(file_panel);
-    set_new_items(file_panel->file_menu, items);
-    file_panel->file_menu->selected_item = file_panel->tabs[file_panel->tabs_menu->selected_item].selected_item;
-    calc_item_coord(file_panel->file_menu);
-
-    print_menu(file_panel->file_menu);
-}
+} */

@@ -45,18 +45,7 @@ TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wc
     text_box->menu = NULL;
 
     if(text_box->verify) {
-        MENU* menu;
-        WINDOW* menu_win = derwin(text_box->window, 1, width - 4, height - 1, 2);
-        keypad(menu_win, TRUE);
-        MITEM **items = (MITEM**)calloc(3, sizeof(MITEM*));
-        items[0] = init_menu_item(L"[ ОК ]");
-        items[1] = init_menu_item(L"[ ОТМЕНА ]");
-        SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME | ALLIGMENT_CENTER;
-        menu = init_menu(items, text_box->window, menu_win, GRID, set_menu);
-        init_menu_format(menu, 1, 2);
-        menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
-        set_columns_size(menu, (double*)2, 0.5, 0.5);
-
+        MENU* menu = verify_menu(text_box->window);
         text_box->menu = menu;
     }
 
@@ -106,14 +95,14 @@ TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
         form_driver(tb->form, REQ_DEL_PREV);
 
         if(tb->verify) {
-            wnoutrefresh(tb->menu->sub_window);
+            wnoutrefresh(tb->menu->subwin);
             print_menu(tb->menu);
         }
         wnoutrefresh(tb->window);
         doupdate();
-        key = wgetch(tb->window);
-        if((key == '\n' || key == KEY_ENTER) && tb->verify) {
-            if(tb->menu->selected_item == 0) {
+        key = wget_wch(tb->window, &sym);
+        if((sym == '\n' || sym == KEY_ENTER) && tb->verify) {
+            if(tb->menu->select == 0) {
                 form_driver(tb->form, REQ_VALIDATION); 
                 num = get_field_len(tb->form->field[0]); 
                 *result = (char*)calloc(num + 1, sizeof(char));
@@ -127,13 +116,13 @@ TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
             }
             break;
         } 
-        else if (key == KEY_RIGHT && tb->verify) {
+        else if (sym == KEY_RIGHT && tb->verify) {
             menu_driver(tb->menu, REQ_RIGHT_ITEM);
         } 
-        else if (key == KEY_LEFT && tb->verify) {
+        else if (sym == KEY_LEFT && tb->verify) {
             menu_driver(tb->menu, REQ_LEFT_ITEM);
         }
-        else if(key == KEY_MOUSE) {
+        else if(sym == KEY_MOUSE) {
             MEVENT mevent;
             if(getmouse(&mevent) == OK && mevent.bstate &  BUTTON1_RELEASED) {
                 if(wenclose(tb->window, mevent.y, mevent.x) && tb->verify) {
@@ -144,15 +133,15 @@ TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
                 }
             }
         } 
-        else if(key == KEY_BACKSPACE) {
+        else if(sym == KEY_BACKSPACE) {
             form_driver(tb->form, REQ_DEL_PREV);
         } 
-        else if(key == KEY_RESIZE) {
+        else if(sym == KEY_RESIZE) {
             status = T_CANCEL;
         }
         else {
             wchar_t wsym = (wchar_t)sym;
-            form_driver(tb->form, key);
+            form_driver_w(tb->form, key, wsym);
         }
 
     } while(status == -2);

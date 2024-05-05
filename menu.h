@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ncursesw/ncurses.h>
+#include <ncurses.h>
 #include <wchar.h>
 #include <stdbool.h>
 #include "fwchar.h"
@@ -64,13 +64,15 @@ typedef enum _DIRECTRION_SORT {
 typedef wchar_t* (*ABREVIATED)(wchar_t*, int);
 
 typedef struct MENU {
-    TYPE_MENU type_menu;
-    WINDOW* parent_window;
-    WINDOW* sub_window;
+    TYPE_MENU type;
+    WINDOW* parwin;
+    WINDOW* subwin;
 
     MITEM** items; 
-    size_t amount_items;
-    int selected_item;
+    size_t size;
+    int select;
+    MITEM* iselect;
+
     MIACTION items_action;
     ABREVIATED* items_abr;
     short slctd_item_color_pair;
@@ -101,8 +103,22 @@ typedef enum _REQ_KEY {
     REQ_RIGHT_ITEM,
     ITEM_CLICKED,
     COLUMN_CLICKED,
+    GROUP_ACT,
     SAME_ITEM,
 } REQ_KEY;
+
+#define verify_menu(window) ({  \
+    WINDOW* menu_win = derwin(window, 1, getmaxx(window) - 4, getmaxy(window) - 1, 2); \
+    keypad(menu_win, TRUE); \
+    MITEM **items = (MITEM**)calloc(3, sizeof(MITEM*)); \
+    items[0] = init_menu_item(L"[ ОК ]"); \
+    items[1] = init_menu_item(L"[ ОТМЕНА ]"); \
+    SETTINGS_MENU set_menu = NONE_SPRT | NON_DESIG_ITEMS | USER_COL_SIZE | NON_COL_NAME | ALLIGMENT_CENTER; \
+    MENU* menu = init_menu(items, window, menu_win, GRID, set_menu); \
+    init_menu_format(menu, 1, 2); \
+    menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; \
+    set_columns_size(menu, (double*)2, 0.5, 0.5); \
+    menu; })
 
 //-------------Menu items-------------
 
@@ -128,6 +144,7 @@ void init_color_slctd_item(MENU* menu, short color_pair);
 //free menu
 void set_new_items(MENU* menu, MITEM** new_items);
 void add_item(MENU* menu, MITEM* new_item, int index);
+void delete_item(MENU* menu, int index);
 void free_menu(MENU *menu);
 
 //-------------Print Menu-------------
@@ -145,5 +162,4 @@ void slctd_item_action(MENU* menu);
 int clicked_column(MENU* menu, MEVENT event);
 
 //sort_items
-void menu_sort(MENU* menu, int col, int (*compare)(const void* value_f, const void* value_s));
 wchar_t* standart_abreviated(wchar_t* item, int col_size);

@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "file_panel.h": "c",
+        "menu.h": "c",
+        "winmanip.h": "c",
+        "signal.h": "c",
+        "message_box.h": "c",
+        "stdlib.h": "c",
+        "text_box.h": "c",
+        "stdbool.h": "c",
+        "errno.h": "c",
+        "regex.h": "c",
+        "file_type_enum.h": "c",
+        "fwchar.h": "c"
+    }
+}

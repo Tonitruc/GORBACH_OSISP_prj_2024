@@ -24,6 +24,7 @@ void ext_start_color() {
     init_color(COLOR_LIGHT_YELLOW, 1000, 1000, 0);
     init_color(COLOR_ORANGE, 800, 500, 0);
     init_color(COLOR_LIGHT_GREEN, 126, 800, 0);
+    init_color(COLOR_OLIVE, 10, 01, 01);
     
     init_pair(MENU_GREEN, COLOR_LIGHT_GREEN, COLOR_DEEP_BLUE);
     init_pair(MENU_YELLOW, COLOR_ORANGE, COLOR_DEEP_BLUE);
@@ -44,6 +45,7 @@ void ext_start_color() {
     init_pair(WARNING_BOX_COLOR, COLOR_WHITE, COLOR_ORANGE);
 
     init_pair(SLCTD_EXCEPTION_COLOR, COLOR_BLACK, COLOR_WHITE);
+    init_pair(MENU_TAB_PANEL, COLOR_VIOLET, COLOR_DARK_BLUE);
 }
 
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair) {
@@ -93,4 +95,24 @@ int start_app(const char* path, const char* args[]) {
     }
     initscr();
     return status;
+}
+
+WINDOW* crt_box_win(int height, int width, int y, int x, short color_pair, wchar_t* title) {
+    WINDOW* window = newwin(height, width, y, x);
+    wattron(window, COLOR_PAIR(color_pair));
+    wbkgd(window, COLOR_PAIR(color_pair));
+    keypad(window, true);
+    box(window, 0, 0);
+    mvwprintw(window, 0, width / 2 - wcslen(title) / 2, "%ls", title);
+
+    return window;
+}
+
+WINDOW* crt_derwin(WINDOW* window, int y, int x, short color_pair) {
+    WINDOW* subwin = derwin(window, getmaxy(window) - 2, getmaxx(window) - 2, y, x);
+    wattron(subwin, COLOR_PAIR(color_pair));
+    wbkgd(subwin, COLOR_PAIR(color_pair));
+    keypad(subwin, true);
+
+    return subwin;
 }
