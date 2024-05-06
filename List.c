@@ -198,3 +198,17 @@ void free_list(LIST* list) {
         free(prev);
     }
 }
+
+LIST_NODE* get_n_element(LIST* list, int num) {
+    if(num < 0 || num >= list->size) {
+        return NULL;
+    }
+
+    LIST_NODE* temp = list->head;
+    while(num != 0) {
+        temp = temp->next;
+        num--;
+    }
+
+    return temp;
+}
