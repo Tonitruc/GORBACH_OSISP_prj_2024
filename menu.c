@@ -676,3 +676,11 @@ wchar_t* standart_abreviated(wchar_t* wstr, int col_size) {
 
     return abr_wsrt;
 }
+
+int mslct(MENU* menu) {
+    if(menu->type == F_HBOX) {
+        return menu->select / menu->columns;
+    } else {
+        return menu->select;
+    }
+}
