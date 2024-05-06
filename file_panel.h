@@ -107,3 +107,4 @@ MITEM** init_files(LIST* list);
 
 bool create_sym_link(FILE_PANEL* file_panel);
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep);
+wchar_t* get_select_file(FILE_PANEL* file_panel);
