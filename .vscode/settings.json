@@ -11,6 +11,7 @@
         "errno.h": "c",
         "regex.h": "c",
         "file_type_enum.h": "c",
-        "fwchar.h": "c"
+        "fwchar.h": "c",
+        "fcntl.h": "c"
     }
 }
