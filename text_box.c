@@ -83,12 +83,35 @@ size_t get_field_len(FIELD* field) {
     return len;
 }
 
-TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
+void set_start_text(TEXT_BOX* tb, wchar_t* text) {
+    int size = wcslen(text);
+    for(int i = 0; i < size; i++) {
+        form_driver_w(tb->form, text[i], text[i]);
+        form_driver(tb->form, REQ_NEXT_CHAR);
+    }
+}
+
+wchar_t* get_field_buffer(FORM* form) {
+    form_driver(form, REQ_VALIDATION);
+    int len = get_field_len(form->field[0]); 
+    mvprintw(1, 0, "%d", len);
+    char* buffer = (char*)calloc(len + 1, sizeof(char));
+    char* inp_str = field_buffer(form->field[0], 0);
+    strncpy(buffer, inp_str, len);
+    buffer[len] = '\0';
+    if(strlen(inp_str) == 0) {
+        return NULL;
+    }    
+    wchar_t* result = cstowchs(buffer);
+    free(buffer);
+    return result;
+}
+
+TEXT_REQ input_text_box(TEXT_BOX* tb, wchar_t** result) {
     show_text_box(tb);
     int status = -2;
     int key; wint_t sym;
 
-    int num = 0;
     do {
         curs_set(true);
         form_driver(tb->form, ' ');
@@ -103,12 +126,7 @@ TEXT_REQ input_text_box(TEXT_BOX* tb, char** result) {
         key = wget_wch(tb->window, &sym);
         if((sym == '\n' || sym == KEY_ENTER) && tb->verify) {
             if(tb->menu->select == 0) {
-                form_driver(tb->form, REQ_VALIDATION); 
-                num = get_field_len(tb->form->field[0]); 
-                *result = (char*)calloc(num + 1, sizeof(char));
-                char* inp_str = field_buffer(tb->form->field[0], 0);
-                strncpy(*result, inp_str, num);
-                (*result)[num] = '\0';                                           
+                *result = get_field_buffer(tb->form);                                       
                 status = T_ALLOW;
             } else {
                 status = T_CANCEL;

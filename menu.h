@@ -142,7 +142,7 @@ void set_item_action(MENU* menu, int num, MIACTION action);
 void init_color_slctd_item(MENU* menu, short color_pair);
 
 //free menu
-void set_new_items(MENU* menu, MITEM** new_items);
+void set_new_items(MENU* menu, MITEM** new_items, int select);
 void add_item(MENU* menu, MITEM* new_item, int index);
 void delete_item(MENU* menu, int index);
 void free_menu(MENU *menu);

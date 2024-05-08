@@ -16,7 +16,7 @@ void clear_y_str(WINDOW* win, int y, int start_x, int len) {
 void ext_start_color() {
     start_color();
 
-    init_color(COLOR_VIOLET, 160, 0, 580);
+    init_color(COLOR_VIOLET, 400, 80, 1000);
     init_color(COLOR_DARK_BLUE, 16, 40, 250);
     init_color(COLOR_DEEP_BLUE, 2, 46, 112);
     init_color(COLOR_BEIGE, 209, 188, 138);
@@ -45,7 +45,7 @@ void ext_start_color() {
     init_pair(WARNING_BOX_COLOR, COLOR_WHITE, COLOR_ORANGE);
 
     init_pair(SLCTD_EXCEPTION_COLOR, COLOR_BLACK, COLOR_WHITE);
-    init_pair(MENU_TAB_PANEL, COLOR_VIOLET, COLOR_DARK_BLUE);
+    init_pair(MENU_TAB_PANEL, COLOR_WHITE, COLOR_VIOLET);
 }
 
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair) {

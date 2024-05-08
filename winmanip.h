@@ -41,7 +41,9 @@
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"
 
-#define CENTER_SCR(start_y, start_x) start_x = (COLS - 1) / 2; start_y = (LINES - 1) / 2
+#define CENTER_Y (LINES - 1) / 2
+#define CENTER_X (COLS - 1) / 2
+#define CENTER_SCR(start_y, start_x) start_x = CENTER_X; start_y = CENTER_Y
 
 void clear_y_str(WINDOW* win, int y, int start_x, int len);
 void ext_start_color();
@@ -50,7 +52,8 @@ void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_
 void recolor_str(WINDOW* win, int y, short color_pair);
 int start_app(const char* path, const char* args[]);
 
-#define wbrt_derwin(tab_win, SLCTD_EXCEPTION_COLOR) crt_derwin(tab_win, 1, 1, SLCTD_EXCEPTION_COLOR);
+#define cwbcrt_win(height, width, color_pair, title) crt_box_win(height, width, CENTER_Y - height / 2, CENTER_X - width / 2, color_pair, title);
+#define wbrt_derwin(tab_win, color_pair) crt_derwin(tab_win, 1, 1, color_pair);
 
 WINDOW* crt_box_win(int height, int width, int y, int x, short color_pair, wchar_t* title);
 WINDOW* crt_derwin(WINDOW* window, int y, int x, short color_pair);

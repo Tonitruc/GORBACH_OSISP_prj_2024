@@ -132,7 +132,7 @@ void print_file_data(WPANEL* wpanel) {
 
 void wkeypad_handler(WPANEL* wpanel, int key) {
     if(wpanel->mode == FILE_LIST) {
-        if(keyboard_event_handler(wpanel->fpanel, key)) {
+        if(keyboard_event_handler(wpanel->fpanel, key, wpanel->dep->fpanel)) {
             wpanel->dep->scroll.beg_pos = 0;
             wpanel->dep->scroll.eof = false;
         }

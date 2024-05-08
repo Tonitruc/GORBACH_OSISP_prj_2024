@@ -1,13 +1,13 @@
 # Компиляторы
 CC=gcc
-CC_FLAGS=-g -Wall -Wl,-O1 -pipe -O2 -flto=2 -fno-fat-lto-objects -fuse-linker-plugin -fPIC
+CC_FLAGS=-g -Wall -Wl,-O1 -pipe -O2 -flto=2 -fno-fat-lto-objects -fuse-linker-plugin -fPIC -D_XOPEN_SOURCE_EXTENDED
 
 # Цели
 TARGET=example
 
 # Директории
-SRC_DIR="/home/tonitrus/Projects/C/OSISP/OSISP-KP/KFS Professional file manager/files"
-BIN_DIR="/home/tonitrus/Projects/C/OSISP/OSISP-KP/KFS Professional file manager/program"
+BIN_DIR="/home/hatelinux/Документы/GitHub"
+SRC_DIR="/home/hatelinux/Документы/GitHub/GORBACH_OSISP_prj_2024"
 
 # Исходные коды
 SOURCES=$(SRC_DIR)/*.c
@@ -28,7 +28,7 @@ MOVE          = mv -f
 TAR           = tar -cf
 COMPRESS      = gzip -9f
 LIBS_DIRS     = -I./include/
-LIBS 		  = $(LIBS_DIRS) -lpanel -lncursesw
+LIBS 		  = $(LIBS_DIRS) -lpanel -lncursesw -lformw
 SED           = sed
 STRIP         = strip
 

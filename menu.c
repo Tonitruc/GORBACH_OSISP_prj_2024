@@ -623,6 +623,9 @@ void add_item(MENU* menu, MITEM* new_item, int index) {
         menu->items[i + 1] = menu->items[i];
     }
     menu->items[index] = new_item;
+    if(menu->select == index) {
+        menu->iselect = menu->items[index];
+    }
 
     menu->size++;
     calc_item_coord(menu);
@@ -638,12 +641,12 @@ void delete_item(MENU* menu, int index) {
     calc_item_coord(menu);
 }
 
-void set_new_items(MENU* menu, MITEM** new_items) {
+void set_new_items(MENU* menu, MITEM** new_items, int select) {
     free_items(menu->items);
 
     menu->size = size_items(new_items);
     menu->items = new_items;
-    menu->select = BASE_SELECTED_ITEM;
+    menu->select = select;
     menu->iselect = menu->items[menu->select];
     menu->rows = menu->size / menu->columns + 1;
 

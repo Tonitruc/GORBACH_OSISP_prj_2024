@@ -81,7 +81,7 @@ MITEM** load_dir(FILE_PANEL* file_panel);
 bool init_file_menu(FILE_PANEL* file_panel, MITEM** items);
 void print_selected_file_space(FILE_PANEL* file_panel);
 bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent);
-bool keyboard_event_handler(FILE_PANEL *file_panel, int key);
+bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep);
 void print_current_file(FILE_PANEL *file_panel, bool with_clear);
 void print_tab_space(FILE_PANEL *file_panel);
 void print_current_directory(FILE_PANEL *file_panel, bool with_clear);
