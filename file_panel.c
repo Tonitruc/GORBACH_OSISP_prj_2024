@@ -59,7 +59,6 @@ void init_tabs_list(FILE_PANEL* file_panel) {
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     FILE_PANEL* file_panel = (FILE_PANEL*)calloc(1, sizeof(FILE_PANEL));
     file_panel->files_info = init_list();
-    file_panel->group = init_list();
 
     int height, width, starty, startx;
 	FILE_PANEL_SIZE(height, width);
@@ -71,6 +70,8 @@ FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
 
     keypad(file_panel->panel, TRUE);
 
+    file_panel->sort_dir = 0;
+    file_panel->is_sort = false;
     file_panel->current_directory = get_cur_dir();
     MITEM** dir_file = load_dir(file_panel);
     init_file_menu(file_panel, dir_file);
@@ -158,7 +159,21 @@ void print_current_file(FILE_PANEL *file_panel, bool with_clear) {
     }
 
     bool is_free = false;
-    wchar_t* buffer = file_panel->file_menu->iselect->string;
+    wchar_t* buffer;
+    if(get_n_element(file_panel->files_info ,mslct(file_panel->file_menu))->data->file_type == SYMBOL_LINK ||
+        get_n_element(file_panel->files_info ,mslct(file_panel->file_menu))->data->file_type == BAD_SYMBOL_LINK) {
+        wchar_t* link = get_select_file(file_panel);
+        wchar_t* path = find_slnk_path(link);
+        size_t size = wcslen(file_panel->file_menu->iselect->string) + wcslen(path) + 5;
+        buffer = (wchar_t*)calloc(size, sizeof(wchar_t));
+        swprintf(buffer, size, L"%ls -> %ls", file_panel->file_menu->iselect->string, path);
+        is_free = true;
+        free(link);
+        free(path);
+    } 
+    else {
+        buffer = file_panel->file_menu->iselect->string;
+    } 
     if(wcslen(buffer) > CUR_FILE_SIZE(file_panel->panel)) {
         buffer = standart_abreviated(buffer, CUR_FILE_SIZE(file_panel->panel));
         is_free = true;
@@ -196,6 +211,7 @@ void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
 
     bool is_free = false;
     wchar_t* buffer = file_panel->current_directory;
+
     if(wcslen(buffer) > CUR_FILE_SIZE(file_panel->panel)) {
         buffer = standart_abreviated(buffer, CUR_FILE_SIZE(file_panel->panel));
         is_free = true;
@@ -213,17 +229,28 @@ wchar_t* get_select_file(FILE_PANEL* file_panel) {
     size_t cur_dir_size = wcslen(file_panel->current_directory);
     wchar_t* cur_file;
     if(wcscmp(file_panel->file_menu->iselect->string, DIR_RETURN) == 0) {
-        for(int i = cur_dir_size - 1; file_panel->current_directory[i] != L'/'; i--) {
-            cur_dir_size--;
+        if(wcscmp(file_panel->current_directory, L"/home") == 0) {
+            cur_file = (wchar_t*)calloc(2, sizeof(wchar_t));
+            cur_file[0] = '/'; cur_file[1] = '\0';
+        } else {
+            for(int i = cur_dir_size - 1; file_panel->current_directory[i] != L'/'; i--) {
+                cur_dir_size--;
+            }
+            cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+            swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
         }
-        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
-        swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
     } else {
-        cur_dir_size += file_panel->file_menu->iselect->size + 2;
-        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+        if(wcscmp(file_panel->file_menu->iselect->string, L"home") == 0 
+            && wcscmp(file_panel->current_directory, L"/") == 0) {
+            cur_file = (wchar_t*)calloc(6, sizeof(wchar_t));
+            swprintf(cur_file, 6, L"/home");
+        } else {
+            cur_dir_size += file_panel->file_menu->iselect->size + 2;
+            cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
 
-        swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
-            file_panel->file_menu->iselect->string);
+            swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
+                file_panel->file_menu->iselect->string);
+        }
     }
 
     return cur_file;
@@ -246,6 +273,7 @@ MITEM** init_files(LIST* list) {
                 case IMAGE: {items[num]->color = MENU_GREEN; break; }
                 case ARCHIVE: {items[num]->color = MENU_GRAY; break;}
                 case SYMBOL_LINK: {items[num]->color = MENU_BLUE; items[num]->pnt_sym = '@'; break;}
+                case BAD_SYMBOL_LINK: { items[num]->color = MENU_RED; items[num]->pnt_sym = '!'; break;}
                 default: items[num]->color = MENU_WHITE; items[num]->pnt_sym = '*';
                 }
             }
@@ -269,6 +297,19 @@ MITEM** init_files(LIST* list) {
 MITEM** load_dir(FILE_PANEL* file_panel) {
     char* cur_dir = wchtochs(file_panel->current_directory);
     LIST* list = read_dir(cur_dir);
+
+    if(file_panel->is_sort) {
+        if(file_panel->file_menu->sorted_col == 0) {
+            sort_list(list->head->next, list->tail, finfo_name_compare, file_panel->sort_dir);
+        } 
+        else if(file_panel->file_menu->sorted_col == 1) {
+            sort_list(list->head->next, list->tail, finfo_size_compare, file_panel->sort_dir);
+        }
+        else if(file_panel->file_menu->sorted_col == 2) {
+            sort_list(list->head->next, list->tail, finfo_time_compare, file_panel->sort_dir);
+        }
+    } 
+
     chdir(cur_dir);
     file_panel->files_info = list;
 
@@ -372,7 +413,8 @@ bool save_tab(FILE_PANEL* file_panel) {
 
 	TEXT_BOX* tabs_name = init_text_box(stdscr, 6, 40, 0, 0, L" ВВОД ", L"Введите имя вкладки", NULL, true);
 	wchar_t* name;
-	TEXT_REQ status = input_text_box(tabs_name, &name);
+	TEXT_REQ status = input_text_box(tabs_name);
+    name = save_input(tabs_name);
 
 	if(status == T_CANCEL) {
 		return false;
@@ -480,6 +522,7 @@ bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
 
             req_key = find_click_item(file_panel->file_menu, mevent);
             if(req_key == COLUMN_CLICKED) {
+                file_panel->is_sort = true;
                 file_panel->sort_dir = file_panel->sort_dir == 1? 0 : 1;
                 if(file_panel->file_menu->sorted_col == 0) {
                     sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_name_compare, file_panel->sort_dir);
@@ -533,11 +576,18 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
             break;
         }
         case '5': {
-			copy_files(file_panel, dep);
+            if(file_panel->file_menu->select != 0)
+			    copy_files(file_panel, dep);
             break;
 		}
 		case '6': {
-			create_dir(file_panel);
+            if(file_panel->file_menu->select != 0)
+			    create_dir(file_panel);
+            break;
+		}
+        case '7': {
+            if(file_panel->file_menu->select != 0)
+			    rename_dir(file_panel);
             break;
 		}
 		case '2': {
@@ -548,6 +598,11 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 			open_file(file_panel);
             break;
 		}
+        case 'S': {
+            if(file_panel->file_menu->select != 0)
+                create_sym_link(file_panel);
+            break;
+        }
         default: break;
     }
 
@@ -558,6 +613,28 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 }
 
 //file CRUD
+
+FOPR file_operation_handler(FOPR status) {
+    if(status == OPERATION_ERROR) {
+        MSG_BOX* exp = init_message_box(7, 40, L" ОШИБКА ", L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично", false);
+        show_msg(exp); 
+    } else if(status == SDIR_NOT_EXIST) {
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Исходный каталог не существует.", false);
+        show_msg(exp); 
+    } else if(status == RDIR_NOT_EXITS) {
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Результирующий каталог не существует.", false);
+        show_msg(exp); 
+    } else if(status == NAME_EXIST) {
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя уже занято.", false);
+        show_msg(exp); 
+    } else if(status == EMPTY_NAME) {
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Пустое имя.", false);
+        show_msg(exp); 
+    }
+ 
+    return status;
+}
+
 /*
 int del_file(FILE_PANEL* file_panel) {
     int status = -1;
@@ -592,37 +669,34 @@ int del_file(FILE_PANEL* file_panel) {
 
 int create_dir(FILE_PANEL* file_panel) {
     int status = -1;
-    TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L"Создание каталога", L"Ведите имя каталога", NULL, true);
+    TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L" СОЗДАНИЕ ", L"Ведите имя каталога", UNIX_FILE_NAME_PATTERN, true);
     wchar_t* name = NULL;
-    status = input_text_box(inp_file_name, &name);
-    if(status == 0) {
-        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Имя не должно содержать /", false);
-        show_msg(exp); 
-        return status;
-    }
-    else if(status == -1) {
+    status = input_text_box(inp_file_name);
+    if(status == -1) {
         return status;
     } 
-    else if(status == 1 && name == NULL) {
-        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Пустое имя", false);
-        show_msg(exp); 
-    }
     else {
-        size_t size = wcslen(name) + wcslen(file_panel->current_directory) + 2;
-        wchar_t* full_path = (wchar_t*)calloc(size, sizeof(wchar_t));
-        swprintf(full_path, size, L"%ls/%ls", file_panel->current_directory, name);
-        status = create_directory(full_path);
-        if(status != 1) {
-            MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Каталог уже существует", false);
-            show_msg(exp);
+        name = save_input(inp_file_name);
+        if(name == NULL) {
+            MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя не должно содержать /", false);
+            show_msg(exp); 
+            return -1;
+        }
+        if(wcslen(name) == 0) {
+            file_operation_handler(EMPTY_NAME); 
         } else {
+            size_t size = wcslen(name) + wcslen(file_panel->current_directory) + 2;
+            wchar_t* full_path = (wchar_t*)calloc(size, sizeof(wchar_t));
+            swprintf(full_path, size, L"%ls/%ls", file_panel->current_directory, name);
+            status = create_directory(full_path);
+            if(file_operation_handler(status)) {
             set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
         }
+        free(full_path);    
+        }
         free(name);
-        free(full_path);
     }
-    
-    free(name);
+
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
 
@@ -634,7 +708,7 @@ bool correction_file(FILE_PANEL* file_panel) {
     FILE_TYPE file_type = get_file_type(current_file);
 
     if(file_type == DIRECTORY) {
-        MSG_BOX* msg = init_message_box(5, 30, L"Ошибка", L"Это каталог", false);
+        MSG_BOX* msg = init_message_box(5, 30, L" ОШИБКА ", L"Это каталог", false);
         show_msg(msg);
         return false;
     }
@@ -643,50 +717,39 @@ bool correction_file(FILE_PANEL* file_panel) {
 
     return true;
 }
- /*
+
 int rename_dir(FILE_PANEL* file_panel) {
     int status = -1;
-    TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L"Новое имя", L"Ведите имя файла", UNIX_FILE_NAME_PATTERN, true);
-    char* name;
-    status = input_text_box(inp_file_name, &name);
-    if(status == 0) {
-        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Имя не должно содержать /", false);
-        show_msg(exp); 
-        return status;
-    }
-    else if(status == -1) {
+    TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L" ПЕРЕИМЕНОВАНИЕ ", L"Ведите имя файла", UNIX_FILE_NAME_PATTERN, true);
+    status = input_text_box(inp_file_name);
+    if(status == -1) {
         return status;
     } 
-    else if(status == 1 && name == NULL) {
-        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Пустое имя", false);
-        show_msg(exp); 
-    }
     else {
-        wchar_t* wname = cstowchs(name);
-        size_t new_size = wcslen(wname) + wcslen(file_panel->current_directory) + 2;
-        wchar_t* new_path = (wchar_t*)calloc(new_size, sizeof(wchar_t));
-        size_t old_size = file_panel->file_menu->iselect->size + wcslen(file_panel->current_directory) + 2;
-        wchar_t* old_path = (wchar_t*)calloc(old_size, sizeof(wchar_t));
-        swprintf(new_path, new_size, L"%ls/%ls", file_panel->current_directory, wname);
-        swprintf(new_path, old_size, L"%ls/%ls", file_panel->current_directory, wname);
-        status = move_file(file_panel->file_menu->iselect->string, new_path);
-        if(status != 1) {
-            MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Каталог уже существует", false);
-            show_msg(exp);
-        } else {
-            set_new_items(file_panel->file_menu, load_dir(file_panel));
+        wchar_t* new_name = save_input(inp_file_name);
+        if(new_name == NULL) {
+            MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя не должно содержать /", false);
+            show_msg(exp); 
+            return -1;            
         }
-        free(wname);
-        free(new_path);
-        free(old_path);
+        if(wcslen(new_name) == 0) {
+            file_operation_handler(EMPTY_NAME);         
+        } else {
+            wchar_t* curr = get_select_file(file_panel);
+            status = rnm_file(curr, new_name);
+            if(file_operation_handler(status)) {
+                set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+            }
+            free(curr);
+        }
+        free(new_name);
     }
     
-    free(name);
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
 
     return status;
-} */
+} 
 
 int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
     WINDOW* window = cwbcrt_win(15, 40, TOP_PANEL_COLOR, title);
@@ -701,7 +764,6 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
 
     TOGGLE_BUTTON* sym_link = create_tbutton(7, 3, window, L" Разыменовывание ссылки", UNCHECKED);
     TOGGLE_BUTTON* save_atr = create_tbutton(9, 3, window, L" Сохранить атрибуты", CHECKED);
-    TOGGLE_BUTTON* otn_link = create_tbutton(11, 3, window, L" Изменять относительные ссылки", UNCHECKED);
 
     MENU* menu = verify_menu(window);
 
@@ -718,6 +780,8 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
         key = wgetch(window);
         if(key == '\n' || key == KEY_ENTER) {
             if(menu->select == 0) {
+                from_str = save_input(from);
+                to_str = save_input(to);
                 status = 1;
             }
             else if(menu->select == 1) {
@@ -739,10 +803,10 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
                     }
 
                     if(wenclose(from->form->sub, mevent.y, mevent.x)) {
-                        input_text_box(from, &from_str);
+                        input_text_box(from);
                     } 
                     else if(wenclose(to->form->sub, mevent.y, mevent.x)) {
-                        input_text_box(to, &to_str);
+                        input_text_box(to);
                     }
 
                     wmouse_trafo(window, &mevent.y, &mevent.x, FALSE);
@@ -752,9 +816,6 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
                     else if(check_click_tbutton(save_atr, &mevent)) {
                         refersh_button(save_atr);
                     } 
-                    else if(check_click_tbutton(otn_link, &mevent)) {
-                        refersh_button(otn_link);
-                    } 
                 }
             }
         }
@@ -763,17 +824,17 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
     return status;
 }
 
-/*
 bool create_sym_link(FILE_PANEL* file_panel) {
-    WINDOW* window = cwbcrt_win(9, 80, L"Символьная ссылка");
+    WINDOW* window = cwbcrt_win(9, 80, TOP_PANEL_COLOR, L" СОЗДАНИЕ ");
 
     MENU* menu = verify_menu(window);
     print_menu(menu);
 
-    TEXT_BOX* from = init_text_box(window, 2, 78, 2, 1, L"", L"Имя файла:", UNIX_FILE_NAME_PATTERN, false);
+    TEXT_BOX* from = init_text_box(window, 2, 78, 2, 1, L"", L"Имя файла:", NULL, false);
     from->box = false;
-    set_start_text(from, get_select_file(file_panel));
+    wchar_t* buffer = get_select_file(file_panel);
     show_text_box(from);
+    set_start_text(from, buffer);
 
     TEXT_BOX* to = init_text_box(window, 2, 78, 4, 1, L"", L"Имя ссылки:", UNIX_FILE_NAME_PATTERN, false);
     to->box = false;
@@ -790,6 +851,8 @@ bool create_sym_link(FILE_PANEL* file_panel) {
         key = wgetch(window);
         if(key == '\n' || key == KEY_ENTER) {
             if(menu->select == 0) {
+                from_str = save_input(from);
+                to_str = save_input(to);
                 create_slnk(from_str, to_str);
                 set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
                 status = 1;
@@ -812,18 +875,20 @@ bool create_sym_link(FILE_PANEL* file_panel) {
                         continue;
                     }
                     if(wenclose(from->form->sub, mevent.y, mevent.x)) {
-                        input_text_box(from, &from_str);
+                        input_text_box(from);
                     } 
                     else if(wenclose(to->form->sub, mevent.y, mevent.x)) {
-                        input_text_box(to, &to_str);
+                        input_text_box(to);
                     }
                 }
             }
         }
     }
+    free(from_str);
+    free(to_str);
     
     return status;
-} */
+}
 
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     wchar_t* copy_file = get_select_file(file_panel);
@@ -836,19 +901,20 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep) {
         if(get_file_type(copy_file) == DIRECTORY) {
             status = cpydir(copy_file, new_dir);
         } else {
-            status = cpyfile(copy_file, new_dir);
+            if(!mcontains(dep->file_menu, file_panel->file_menu->iselect->string)) {
+                status = cpyfile(copy_file, new_dir);
+            } else {
+                status = NAME_EXIST;
+            }
         }
-        if(status != 1) {
-            MSG_BOX* msg = init_message_box(5, 40, L"ERROR", L"SUCK", false);
-            show_msg(msg);
-        } else {
+        if(file_operation_handler(status)) {
             set_new_items(dep->file_menu, load_dir(dep), 0);
-        }
+        } else return false;
     } 
 
     return true;
 }
 
 void free_file_panel(FILE_PANEL* file_panel) {
-
+    
 } 

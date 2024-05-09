@@ -63,3 +63,4 @@ void close_app();
 bool resize_app();
 int show_command_window();
 int show_setting_panel_window(int panel_num);
+void find_file(FILE_PANEL* file_panel);

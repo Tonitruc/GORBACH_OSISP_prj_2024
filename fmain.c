@@ -244,43 +244,53 @@ void init_setting_menu() {
 	print_menu(setting_panel_menu);
 }
 
-int show_command_window() {
-	show_panel(application[1]);
-
+int command_key_handler(MENU* menu, bool spec_key) {
 	int status = -2;
 	int key;
 	while(status == -2) {
 		update_panels();
 		doupdate();
-		wrefresh(command_panel_menu->subwin);
+		wrefresh(menu->subwin);
 		key = getch();
 		if(key == KEY_DOWN) {
-			menu_driver(command_panel_menu, REQ_DOWN_ITEM);
+			menu_driver(menu, REQ_DOWN_ITEM);
 		} else if(key == KEY_UP) {
-			menu_driver(command_panel_menu, REQ_UP_ITEM);
+			menu_driver(menu, REQ_UP_ITEM);
 		} else if(key == KEY_MOUSE) {
 			MEVENT mevent;
 			if(getmouse(&mevent) == OK) {
 				if(mevent.bstate & BUTTON5_PRESSED) {
-					menu_driver(command_panel_menu, REQ_DOWN_ITEM);
+					menu_driver(menu, REQ_DOWN_ITEM);
 				} else if(mevent.bstate & BUTTON4_PRESSED) {
-					menu_driver(command_panel_menu, REQ_UP_ITEM);
+					menu_driver(menu, REQ_UP_ITEM);
 				} else if(mevent.bstate & BUTTON1_RELEASED) {
-					if(!wenclose(command_panel_window, mevent.y, mevent.x)) {
+					if(!wenclose(menu->parwin, mevent.y, mevent.x)) {
 						status = -1;
 					} else {
-						find_click_item(command_panel_menu, mevent);
+						find_click_item(menu, mevent);
 					}	
 				}
 			}
 		} else if(key == '\n' || key == KEY_ENTER) {
-			status = command_panel_menu->select;
+			status = menu->select;
 		}
 		else if(key == KEY_RESIZE) {
 			status = -1;
 		}
+		else if(key == KEY_F(1) && spec_key) {
+			return KEY_F(1);
+		}
+		else if(key == KEY_F(2) && spec_key) {
+			return KEY_F(2);
+		}
 	}
 
+	return status;
+}
+
+int show_command_window() {
+	show_panel(application[1]);
+	int status = command_key_handler(command_panel_menu, false); 
 	hide_panel(application[1]);
 	update_panels();
 	doupdate();
@@ -294,47 +304,137 @@ int show_setting_panel_window(int panel_num) {
 	} else if(panel_num == 1) {
 		mvwin(setting_panel_window, 1, 37);
 		mvwin(setting_panel_menu->subwin, 2, 38);
-
 	}
 
 	show_panel(application[0]);
 
+	int status = command_key_handler(setting_panel_menu, false); 
+
+	hide_panel(application[0]);
+	update_panels();
+	doupdate();
+	return status;
+}
+
+int inp_find_pattern(FILE_PANEL* file_panel, wchar_t** rpattern, wchar_t** rsdir) {
+	WINDOW* win = cwbcrt_win(9, 82, TOP_PANEL_COLOR, L" ПОИСК ");
+	TEXT_BOX* inp_pattern = init_text_box(win, 2, 80, 2, 1, L"", L"Шаблон", NULL, false);
+	inp_pattern->box = false;
+	show_text_box(inp_pattern);
+
+	TEXT_BOX* inp_sdir = init_text_box(win, 2, 80, 5, 1, L"", L"Стартовый каталог", NULL, false);
+	inp_sdir->box = false;
+	show_text_box(inp_sdir);
+	set_start_text(inp_sdir, file_panel->current_directory);
+
+	MENU* menu = verify_menu(win);
+	print_menu(menu);
+
 	int status = -2;
 	int key;
 	while(status == -2) {
-		update_panels();
-		doupdate();
-		wrefresh(setting_panel_menu->subwin);
+		wrefresh(menu->subwin);
+		wrefresh(win);
 		key = getch();
-		if(key == KEY_DOWN) {
-			menu_driver(setting_panel_menu, REQ_DOWN_ITEM);
-		} else if(key == KEY_UP) {
-			menu_driver(setting_panel_menu, REQ_UP_ITEM);
+		if(key == KEY_RIGHT) {
+			menu_driver(menu, REQ_RIGHT_ITEM);
+		} else if(key == KEY_LEFT) {
+			menu_driver(menu, REQ_LEFT_ITEM);
 		} else if(key == KEY_MOUSE) {
 			MEVENT mevent;
 			if(getmouse(&mevent) == OK) {
-				if(mevent.bstate & BUTTON5_PRESSED) {
-					menu_driver(setting_panel_menu, REQ_DOWN_ITEM);
-				} else if(mevent.bstate & BUTTON4_PRESSED) {
-					menu_driver(setting_panel_menu, REQ_UP_ITEM);
-				} else if(mevent.bstate & BUTTON1_RELEASED) {
-					if(!wenclose(setting_panel_window, mevent.y, mevent.x)) {
+				if (mevent.bstate & BUTTON1_RELEASED) {
+					if(!wenclose(menu->parwin, mevent.y, mevent.x)) {
 						status = -1;
 					} else {
-						find_click_item(setting_panel_menu, mevent);
+						find_click_item(menu, mevent);
 					}	
-				}
+				} 
+				else if(wenclose(inp_sdir->form->sub, mevent.y, mevent.x)) {
+                    input_text_box(inp_sdir);
+                } 
+                else if(wenclose(inp_pattern->form->sub, mevent.y, mevent.x)) {
+                    input_text_box(inp_pattern);
+                }
 			}
 		} else if(key == '\n' || key == KEY_ENTER) {
-			status = setting_panel_menu->select;
+			if(menu->select == 1) {
+				status = -1;
+			} else {
+				status = menu->select;
+				*rpattern = save_input(inp_pattern);
+				*rsdir = save_input(inp_sdir);
+			}
 		}
 		else if(key == KEY_RESIZE) {
 			status = -1;
 		}
 	}
 
-	hide_panel(application[0]);
-	update_panels();
-	doupdate();
 	return status;
+}
+
+void find_file(FILE_PANEL* file_panel) {
+	WINDOW* window = cwbcrt_win((LINES - 6), (COLS - 6), SLCTD_EXCEPTION_COLOR, L" ПОИСК ");
+	mvwaddwstr_color(window, getmaxy(window) - 1, (getmaxx(window) / 4) - 6, L" F1 - переход", EXCEPTION_COLOR);
+	mvwaddwstr_color(window, getmaxy(window) - 1, (getmaxx(window) / 2) + (getmaxx(window) / 4) - 5, L" F2 - выход", EXCEPTION_COLOR);
+	WINDOW* subwin = wbrt_derwin(window, SLCTD_EXCEPTION_COLOR);
+
+	wchar_t* pattern, *sdir;
+	int status = inp_find_pattern(file_panel, &pattern, &sdir);
+	if(status == -1) {
+		delwin(window);
+		delwin(subwin);
+		return;
+	}
+
+	LIST* flist = init_list(); 
+	status = find_files(flist, sdir, pattern);
+	if(status == -1) {
+		MSG_BOX* msg = init_message_box(5, 30, L" ОШИБКА ", L"Неверное регулярное выражение", false);
+		show_msg(msg);
+		return;
+	}
+
+	MITEM** items = (MITEM**)calloc(flist->size + 1, sizeof(MITEM*));
+	for(int i = 0; i < flist->size; i++) {
+		if(get_n_element(flist, i)->data->file_type == DIRECTORY) {
+			items[i] = init_menu_item(get_n_element(flist, i)->data->full_path);
+			items[i]->color = EXCEPTION_COLOR;
+			items[i]->pnt_sym = ' ';
+		} else {
+			items[i] = init_menu_item(get_n_element(flist, i)->data->file_name);
+			items[i]->color = SLCTD_EXCEPTION_COLOR;
+			items[i]->pnt_sym = ' ';
+		}
+	}
+
+	SETTINGS_MENU set_menu = NONE_SPRT | DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME;
+	MENU* menu = init_menu(items, window, subwin, GRID, set_menu);
+	init_color_slctd_item(menu, TOP_PANEL_COLOR);
+	init_menu_format(menu, getmaxy(subwin), 1);
+	wnoutrefresh(window);
+	wnoutrefresh(subwin);
+	doupdate();
+	print_menu(menu);
+
+	status = command_key_handler(menu, true);
+	if(status == KEY_F(1)) {
+		LIST_NODE* finfo = get_n_element(flist, menu->select);
+		while(finfo->data->file_type != DIRECTORY) {
+			finfo = finfo->prev;
+		}
+		free(file_panel->current_directory);
+		file_panel->current_directory = (wchar_t*)calloc(wcslen(finfo->data->full_path) + 1, sizeof(wchar_t));
+		wcscpy(file_panel->current_directory, finfo->data->full_path);
+		set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+		while(wcscmp(menu->iselect->string, file_panel->file_menu->iselect->string) != 0) {
+			wkeypad_handler(wpanel, KEY_DOWN);
+		}
+	}
+
+	free_list(flist);
+	free_menu(menu);
+	delwin(window);
+	delwin(subwin);
 }

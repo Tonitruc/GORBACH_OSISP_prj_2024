@@ -164,3 +164,4 @@ int clicked_column(MENU* menu, MEVENT event);
 //sort_items
 wchar_t* standart_abreviated(wchar_t* item, int col_size);
 int mslct(MENU* menu);
+bool mcontains(MENU* menu, const wchar_t* string);

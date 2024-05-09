@@ -47,9 +47,15 @@ FILE_TYPE get_file_type(wchar_t* wfull_path) {
     struct stat file_info;
     FILE_TYPE file_type;
 
-    if (stat(full_path, &file_info) == 0) {
+    if (lstat(full_path, &file_info) == 0) {
         if (S_ISDIR(file_info.st_mode)) { file_type = DIRECTORY; }
-        else if (S_ISLNK(file_info.st_mode)) { file_type = SYMBOL_LINK; }
+        else if (S_ISLNK(file_info.st_mode)) { 
+            if(access(full_path, F_OK) == 0) {
+                file_type = SYMBOL_LINK; 
+            } else {
+                file_type = BAD_SYMBOL_LINK;
+            }
+            }
         else if (wchstrcmp(wfull_path, L".png", 0, 0) 
                 || wchstrcmp(wfull_path, L".jpg", 0, 0)) {file_type = IMAGE; } 
         else if (wchstrcmp(wfull_path, L".odt", 0, 0) 
@@ -108,37 +114,40 @@ LIST* read_dir(char* path) {
     return list;
 }
 
-int finfo_name_compare(FINFO* first, FINFO* second) {
+int finfo_name_compare(FINFO* first, FINFO* second, int dir) {
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
-        return -1;
+        return dir == 0? -1 : 1;
     } 
     else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
-        return 1;
+        return dir == 0? 1 : -1;
     } 
-
-    return wcscmp(first->file_name, second->file_name);
+    else {
+        return wcscmp(first->file_name, second->file_name);
+    }
 }
 
-int finfo_size_compare(FINFO* first, FINFO* second) {
+int finfo_size_compare(FINFO* first, FINFO* second, int dir) {
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
-        return -1;
+        return dir == 0? -1 : 1;
     } 
     else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
-        return 1;
+        return dir == 0? 1 : -1;
     } 
-
-    return first->size_kb < second->size_kb;
+    else {
+        return first->size_kb <= second->size_kb? 1 : -1;
+    }
 }
 
-int finfo_time_compare(FINFO* first, FINFO* second) {
+int finfo_time_compare(FINFO* first, FINFO* second, int dir) {
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
-        return -1;
+        return dir == 0? -1 : 1;
     } 
     else if(first->file_type != DIRECTORY && second->file_type == DIRECTORY) {
-        return 1;
+        return dir == 0? 1 : -1;
     } 
-
-    return first->edit_time < second->edit_time;
+    else {
+        return first->edit_time <= second->edit_time? 1 : -1;
+    }
 }
 
 void rfind_files(LIST* result, char* start_dir, regex_t regex) {
@@ -153,6 +162,12 @@ void rfind_files(LIST* result, char* start_dir, regex_t regex) {
 
     wchar_t* wbuffer;
     dir = opendir(start_dir);
+
+    stat(start_dir, &file_info);
+    wchar_t* wstart_dir = cstowchs(start_dir);
+    finfo = init_file_info(wstart_dir, wstart_dir, file_info.st_ctime, file_info.st_size, DIRECTORY);
+    add_last(result, finfo);
+
     while((d = readdir(dir))) {
         if(strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0)
             continue;
@@ -166,19 +181,11 @@ void rfind_files(LIST* result, char* start_dir, regex_t regex) {
         file_type = get_file_type(wbuffer);
 
         if(get_file_type(full_path) == DIRECTORY) {   
-            if (stat(buffer, &file_info) == 0) {
-                edit_time = file_info.st_mtime;
-                size_kb = file_info.st_size;      
-            }
-
-            finfo = init_file_info(full_path, file_name, edit_time, size_kb, DIRECTORY);
             rfind_files(result, buffer, regex);
-            add_last(result, finfo);
         } else if(regexec(&regex, d->d_name, 0, NULL, 0) == 0) {
-            if (stat(buffer, &file_info) == 0) {
-                edit_time = file_info.st_mtime;
-                size_kb = file_info.st_size;      
-            }
+            stat(buffer, &file_info);
+            edit_time = file_info.st_mtime;
+            size_kb = file_info.st_size;      
 
             finfo = init_file_info(full_path, file_name, edit_time, size_kb, file_type);
             add_last(result, finfo);

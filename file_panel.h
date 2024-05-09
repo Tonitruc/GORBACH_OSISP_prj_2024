@@ -71,7 +71,7 @@ typedef struct _FILE_PANEL {
     MENU* tabs_menu;
     int amount_tabs;
 
-    LIST* group;
+    bool is_sort;
 } FILE_PANEL;
 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num);

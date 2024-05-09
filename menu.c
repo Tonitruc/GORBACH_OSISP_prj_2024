@@ -36,6 +36,16 @@ size_t size_items(MITEM** items) {
     return count;
 }
 
+bool mcontains(MENU* menu, const wchar_t* string) {
+    for(int i = 0; i < menu->size; i++) {
+        if(wcscmp(menu->items[i]->string, string) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 //-------------Menu Settings-------------
 
 bool init_menu_win(MENU* menu, WINDOW* pwin) {

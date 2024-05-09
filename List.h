@@ -30,8 +30,7 @@ void remove_n(LIST* list, int number);
 void remove_last(LIST* list);
 void remove_first(LIST* list);
 
-void add_by(LIST* list, FINFO* data, int (*comparator)(const void* first, const void* second));
-void sort_list(LIST_NODE* head, LIST_NODE* tail, int (*comparator)(FINFO*, FINFO*), int dir);
+void sort_list(LIST_NODE* head, LIST_NODE* tail, int (*comparator)(FINFO*, FINFO*, int), int dir);
 void free_list(LIST* list);
 LIST_NODE* get_n_element(LIST* list, int num);
 

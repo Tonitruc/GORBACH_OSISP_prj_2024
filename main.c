@@ -33,6 +33,17 @@ int main() {
 					} 
 					else if(upper_panel->select == 1) {
 						choice = show_command_window();
+						if(choice == 0) {
+							wkeypad_handler(wpanel, 'S');
+						} 
+						else if(choice == 3) {
+							wpanel->fpanel->is_sort = false;
+							int select = wpanel->fpanel->file_menu->select;
+							set_new_items(wpanel->fpanel->file_menu, load_dir(wpanel->fpanel), select);
+						}
+						else if(choice == 4) {
+							find_file(wpanel->fpanel);
+						}
 					} 
 					else if(upper_panel->select == 2) {
 						choice = show_setting_panel_window(1);

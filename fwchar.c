@@ -78,7 +78,7 @@ wchar_t* wtime(time_t time) {
     wchar_t* ws_time = (wchar_t*)calloc(STNDRT_TIME_SIZE + 1, sizeof(wchar_t));
     struct tm* s_time;
 
-    s_time = gmtime(&time);
+    s_time = localtime(&time);
 
     swprintf(ws_time, STNDRT_TIME_SIZE + 1, L"%d.%02d.%02d %02d:%02d", s_time->tm_year + 1900, s_time->tm_mon, s_time->tm_mday, 
                 s_time->tm_hour, s_time->tm_min);

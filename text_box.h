@@ -37,7 +37,8 @@ typedef struct _TEXT_WIN {
 TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wchar_t* title, wchar_t* message, const char* pattern, bool verify);
 void set_color_text(TEXT_BOX* tb, short color_pair);
 void show_text_box(TEXT_BOX* tb);
-TEXT_REQ input_text_box(TEXT_BOX* tb, wchar_t** result);
+TEXT_REQ input_text_box(TEXT_BOX* tb);
 void free_text(TEXT_BOX* tb);
 void set_start_text(TEXT_BOX* tb, wchar_t* text);
+wchar_t* save_input(TEXT_BOX* tb);
 

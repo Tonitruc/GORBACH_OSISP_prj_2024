@@ -13,6 +13,9 @@ TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wc
     text_box->start_y = start_y;
     text_box->window = derwin(par_win, height, width, start_y, start_x);
 
+    text_box->input = (wchar_t*)calloc(1, sizeof(wchar_t));
+    text_box->input[0] = '\0';
+
     text_box->height = height;
     text_box->width = width;
     text_box->pattern = pattern;
@@ -40,7 +43,9 @@ TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wc
 
     set_form_sub(text_box->form, form_win);
     set_field_opts(field[0], O_VISIBLE | O_PUBLIC | O_EDIT | O_ACTIVE);
-        //set_field_type(field[0], TYPE_ALNUM);
+    if(pattern != NULL) {
+        set_field_type(field[0], TYPE_REGEXP, pattern);
+    }
 
     text_box->menu = NULL;
 
@@ -84,15 +89,16 @@ size_t get_field_len(FIELD* field) {
 }
 
 void set_start_text(TEXT_BOX* tb, wchar_t* text) {
-    int size = wcslen(text);
+    size_t size = wcslen(text);
     for(int i = 0; i < size; i++) {
-        form_driver_w(tb->form, text[i], text[i]);
-        form_driver(tb->form, REQ_NEXT_CHAR);
+        form_driver_w(tb->form, 0, text[i]);
     }
 }
 
 wchar_t* get_field_buffer(FORM* form) {
-    form_driver(form, REQ_VALIDATION);
+    if(form_driver(form, REQ_VALIDATION) != E_OK) {
+        return NULL;
+    }
     int len = get_field_len(form->field[0]); 
     mvprintw(1, 0, "%d", len);
     char* buffer = (char*)calloc(len + 1, sizeof(char));
@@ -107,7 +113,20 @@ wchar_t* get_field_buffer(FORM* form) {
     return result;
 }
 
-TEXT_REQ input_text_box(TEXT_BOX* tb, wchar_t** result) {
+wchar_t* save_input(TEXT_BOX* tb) {
+    free(tb->input);
+    tb->input = get_field_buffer(tb->form);
+    if(tb->input == NULL) {
+        return NULL;
+    }
+
+    wchar_t* copy = (wchar_t*)calloc(wcslen(tb->input) + 1, sizeof(wchar_t));
+    wcscpy(copy, tb->input);
+
+    return copy;
+}
+
+TEXT_REQ input_text_box(TEXT_BOX* tb) {
     show_text_box(tb);
     int status = -2;
     int key; wint_t sym;
@@ -125,12 +144,10 @@ TEXT_REQ input_text_box(TEXT_BOX* tb, wchar_t** result) {
         doupdate();
         key = wget_wch(tb->window, &sym);
         if((sym == '\n' || sym == KEY_ENTER) && tb->verify) {
-            if(tb->menu->select == 0) {
-                *result = get_field_buffer(tb->form);                                       
+            if(tb->menu->select == 0) {                          
                 status = T_ALLOW;
             } else {
                 status = T_CANCEL;
-                *result = NULL;
             }
             break;
         } 
@@ -174,6 +191,7 @@ void free_text(TEXT_BOX* tb) {
         free_menu(tb->menu);
     }
 
+    free(tb->input);
     unpost_form(tb->form);
     free_form(tb->form);
     free(tb->title);
