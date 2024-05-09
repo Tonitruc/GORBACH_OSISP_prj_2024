@@ -35,7 +35,7 @@ extern const wchar_t* setting_points[];
 extern WINDOW* command_panel_window;
 extern MENU* command_panel_menu;
 
-#define AMOUNT_COMMAND 5
+#define AMOUNT_COMMAND 4
 
 extern const wchar_t* command_points[];
 

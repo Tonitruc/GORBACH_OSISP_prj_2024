@@ -590,6 +590,11 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 			    rename_dir(file_panel);
             break;
 		}
+        case '8': {
+            if(file_panel->file_menu->select != 0)
+			    del_file(file_panel);
+            break;
+		}
 		case '2': {
 			correction_file(file_panel);
             break;
@@ -635,7 +640,6 @@ FOPR file_operation_handler(FOPR status) {
     return status;
 }
 
-/*
 int del_file(FILE_PANEL* file_panel) {
     int status = -1;
     wchar_t* buffer = get_select_file(file_panel);
@@ -644,19 +648,11 @@ int del_file(FILE_PANEL* file_panel) {
     set_color_msg(msg, WARNING_BOX_COLOR);
     status = show_msg(msg);
 
-    if(file_panel->file_menu->select == 0) {
-        MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Нельзя удалить /..", false);
-        show_msg(exp);
-    }
-
     if(status != -1) {
         bool is_dir = get_file_type(buffer) == DIRECTORY;
         status = delete_file(buffer, is_dir);
-        if(status != 0) {
-            MSG_BOX* exp = init_message_box(5, 30, L"Ошибка", L"Не удалось удалить файл", false);
-            show_msg(exp);
-        } else {
-            set_new_items(file_panel->file_menu, load_dir(file_panel));
+        if(file_operation_handler(status)) {
+            set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
         }
     }
 
@@ -665,7 +661,7 @@ int del_file(FILE_PANEL* file_panel) {
     print_menu(file_panel->file_menu);
 
     return status;
-} */
+} 
 
 int create_dir(FILE_PANEL* file_panel) {
     int status = -1;

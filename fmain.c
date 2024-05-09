@@ -21,12 +21,11 @@ const wchar_t* setting_points[] = {
 WINDOW* command_panel_window;
 MENU* command_panel_menu;
 
-#define AMOUNT_COMMAND 5
+#define AMOUNT_COMMAND 4
 
 const wchar_t* command_points[] = {
 	L" Символьная ссылка ",
-	L" Архивация ",
-	L" Разорхивация ",
+	L" Создать файл ",
 	L" Без сортировки ",
 	L" Поиск файла "
 };

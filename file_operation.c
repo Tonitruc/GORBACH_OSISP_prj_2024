@@ -1,10 +1,47 @@
 #include "file_operation.h"
 #include <ncurses.h>
 
-FOPR delete_file(wchar_t* full_path) {
-    char* buffer = wchtochs(full_path);
-    int status = unlink(buffer);
-    free(buffer);
+FOPR delete_file(wchar_t* full_path, bool is_dir) {
+    char* fp = wchtochs(full_path);
+    FOPR status = SUCCESS;
+
+    if(is_dir) {
+        DIR *dir;
+        struct dirent* d;
+
+        dir = opendir(fp);
+        if(dir == NULL) {
+            return SDIR_NOT_EXIST;
+        }
+        while((d = readdir(dir)) && status == SUCCESS) {
+            if(strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0)
+                continue;
+
+            char* next_path = (char*)calloc(strlen(d->d_name) + strlen(fp) + 2, sizeof(char));
+            sprintf(next_path, "%s/%s", fp, d->d_name);
+            wchar_t* wnext_path = cstowchs(next_path);
+
+            if(get_file_type(wnext_path) == DIRECTORY) {
+                status = delete_file(wnext_path, true);
+            } else {
+                status = delete_file(wnext_path, false);
+            }
+
+            free(next_path);
+            free(wnext_path);
+        }
+
+        closedir(dir);
+        if(rmdir(fp) == -1) {
+            status = OPERATION_ERROR;
+        }
+    }
+    else {
+        if(unlink(fp) == -1) {
+            status = OPERATION_ERROR;
+        }
+    }
+    free(fp);
 
     return status;
 }

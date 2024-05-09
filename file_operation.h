@@ -15,7 +15,7 @@ typedef enum _FILE_OPERATION_RESULT {
     EMPTY_NAME = 5,
 } FOPR;
 
-FOPR delete_file(wchar_t* full_path);
+FOPR delete_file(wchar_t* full_path, bool is_dir);
 FOPR create_directory(wchar_t* full_path);
 FOPR create_file(wchar_t* full_path);
 FOPR move_file(wchar_t* file_path, wchar_t* new_dir);
