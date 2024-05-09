@@ -37,6 +37,7 @@
 #define SLCTD_EXCEPTION_COLOR 43
 #define WARNING_BOX_COLOR 44
 #define MENU_TAB_PANEL 45
+#define MENU_GROUP 46
 
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"

@@ -225,10 +225,32 @@ void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
 
 //help function
 
-wchar_t* get_select_file(FILE_PANEL* file_panel) {
+LIST* get_group(FILE_PANEL* file_panel) {
+    FINFO* finfo;
+    LIST* group = init_list();
+    if(is_clear_group(file_panel->file_menu)) {
+        add_last(group, get_n_element(file_panel->files_info, file_panel->file_menu->select));
+    } else {
+        for(int i = 0; i < file_panel->file_menu->size; i++) {
+            add_last(group, get_n_element(file_panel->files_info, i / 3)->data);
+        }
+    }
+
+    return group;
+}
+
+wchar_t* get_file(FILE_PANEL* file_panel, int n) {
     size_t cur_dir_size = wcslen(file_panel->current_directory);
     wchar_t* cur_file;
-    if(wcscmp(file_panel->file_menu->iselect->string, DIR_RETURN) == 0) {
+
+    if(n != 0) {
+        cur_dir_size += wcslen(get_n_element(file_panel->files_info, n)->data->file_name) + 2;
+        cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+
+        swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
+                get_n_element(file_panel->files_info, n)->data->file_name);
+    }
+    else if(wcscmp(file_panel->file_menu->iselect->string, DIR_RETURN) == 0) {
         if(wcscmp(file_panel->current_directory, L"/home") == 0) {
             cur_file = (wchar_t*)calloc(2, sizeof(wchar_t));
             cur_file[0] = '/'; cur_file[1] = '\0';
@@ -321,15 +343,15 @@ MITEM** load_dir(FILE_PANEL* file_panel) {
 
 bool change_dir(FILE_PANEL* file_panel) {
     wchar_t* new_dir = get_select_file(file_panel);
+    wchar_t* old_dir = file_panel->current_directory; 
 
-    free(file_panel->current_directory);
     free_list(file_panel->files_info);
     file_panel->current_directory = new_dir;
 
     MITEM** new_items = load_dir(file_panel);
     set_new_items(file_panel->file_menu, new_items, 0);
     unprint_menu(file_panel->file_menu);
-
+    free(old_dir);
     return true;
 }
 
@@ -576,13 +598,12 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
             break;
         }
         case '5': {
-            if(file_panel->file_menu->select != 0)
+            if(file_panel->file_menu->select != 0) 
 			    copy_files(file_panel, dep);
             break;
 		}
 		case '6': {
-            if(file_panel->file_menu->select != 0)
-			    create_dir(file_panel);
+			create_dir(file_panel);
             break;
 		}
         case '7': {
@@ -747,16 +768,18 @@ int rename_dir(FILE_PANEL* file_panel) {
     return status;
 } 
 
-int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
-    WINDOW* window = cwbcrt_win(15, 40, TOP_PANEL_COLOR, title);
+int dialog_win_cm(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title, int *attr, int *lnk) {
+    WINDOW* window = cwbcrt_win(12, 60, TOP_PANEL_COLOR, title);
 
-    TEXT_BOX* from = init_text_box(window, 2, 38, 2, 1, L"", L"из:", UNIX_FILE_NAME_PATTERN, false);
+    TEXT_BOX* from = init_text_box(window, 2, 58, 2, 1, L"", L"из:", UNIX_FILE_NAME_PATTERN, false);
     from->box = false;
     show_text_box(from);
+    set_start_text(from, file_panel->current_directory);
 
-    TEXT_BOX* to = init_text_box(window, 2, 38, 4, 1, L"", L"в:", UNIX_FILE_NAME_PATTERN, false);
+    TEXT_BOX* to = init_text_box(window, 2, 58, 4, 1, L"", L"в:", UNIX_FILE_NAME_PATTERN, false);
     to->box = false;
     show_text_box(to);
+    set_start_text(to, dep->current_directory);
 
     TOGGLE_BUTTON* sym_link = create_tbutton(7, 3, window, L" Разыменовывание ссылки", UNCHECKED);
     TOGGLE_BUTTON* save_atr = create_tbutton(9, 3, window, L" Сохранить атрибуты", CHECKED);
@@ -778,6 +801,8 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
             if(menu->select == 0) {
                 from_str = save_input(from);
                 to_str = save_input(to);
+                *attr = save_atr->state;
+                *lnk = sym_link->state;
                 status = 1;
             }
             else if(menu->select == 1) {
@@ -789,6 +814,9 @@ int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title) {
         }
         else if(key == KEY_RIGHT) {
             menu_driver(menu, REQ_RIGHT_ITEM);
+        }
+        else if(key == KEY_RESIZE) {
+            status = -1;
         }
         else if(key == KEY_MOUSE) {
             MEVENT mevent;
@@ -887,18 +915,26 @@ bool create_sym_link(FILE_PANEL* file_panel) {
 }
 
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep) {
+    LIST* group = get_group(file_panel);
+    LIST_NODE* list_node = group->head;
+
     wchar_t* copy_file = get_select_file(file_panel);
     size_t size = wcslen(dep->current_directory) + wcslen(file_panel->file_menu->iselect->string) + 2;
     wchar_t* new_dir = (wchar_t*)calloc(size, sizeof(wchar_t));
     swprintf(new_dir, size, L"%ls/%ls", dep->current_directory, file_panel->file_menu->iselect->string);
 
-    int status = dialog_win_cm(file_panel, L" КОПИРОВАНИЕ ");
+    int save_attr, link;
+    int status = dialog_win_cm(file_panel, dep, L" КОПИРОВАНИЕ ", &save_attr, &link);
     if(status != -1) {
         if(get_file_type(copy_file) == DIRECTORY) {
-            status = cpydir(copy_file, new_dir);
-        } else {
+            status = cpydir(copy_file, new_dir, save_attr, link);
+        }
+        else if(get_file_type(copy_file) == SYMBOL_LINK && link == 1) {
+            status = cpyslnk(copy_file, dep->current_directory, save_attr);
+        } 
+        else {
             if(!mcontains(dep->file_menu, file_panel->file_menu->iselect->string)) {
-                status = cpyfile(copy_file, new_dir);
+                status = cpyfile(copy_file, new_dir, save_attr, link);
             } else {
                 status = NAME_EXIST;
             }

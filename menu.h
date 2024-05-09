@@ -92,19 +92,22 @@ typedef struct MENU {
     MITEM** column_names;
     chtype color_front_col;
     SETTINGS_MENU set_menu;
+
+    MITEM** group;
+    short group_color;
 } MENU;
 
 
 typedef enum _REQ_KEY {
-    NON_REQ,
-    REQ_DOWN_ITEM,
-    REQ_UP_ITEM,
-    REQ_LEFT_ITEM,
-    REQ_RIGHT_ITEM,
-    ITEM_CLICKED,
-    COLUMN_CLICKED,
-    GROUP_ACT,
-    SAME_ITEM,
+    NON_REQ = 0,
+    REQ_DOWN_ITEM = 1,
+    REQ_UP_ITEM = 2,
+    REQ_LEFT_ITEM = 4,
+    REQ_RIGHT_ITEM = 8,
+    ITEM_CLICKED = 16,
+    COLUMN_CLICKED = 32,
+    GROUP_ACT = 64,
+    SAME_ITEM = 128,
 } REQ_KEY;
 
 #define verify_menu(window) ({  \
@@ -124,6 +127,7 @@ typedef enum _REQ_KEY {
 
 MITEM* init_menu_item(const wchar_t* string);
 size_t size_items(MITEM** items);
+int find_mitem(MITEM** items, wchar_t* string);
 
 //-------------Menu Settings-------------
 
@@ -165,3 +169,5 @@ int clicked_column(MENU* menu, MEVENT event);
 wchar_t* standart_abreviated(wchar_t* item, int col_size);
 int mslct(MENU* menu);
 bool mcontains(MENU* menu, const wchar_t* string);
+bool is_clear_group(MENU* menu);
+int* get_group_pnt(MENU* menu);

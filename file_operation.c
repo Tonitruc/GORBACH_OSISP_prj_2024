@@ -116,7 +116,7 @@ FOPR move_file(wchar_t* file_path, wchar_t* new_dir) {
     return status;
 }
 
-FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir) {
+FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir, int save_atr, int link) {
     char* fp = wchtochs(file_path);
     char* nd = wchtochs(new_dir);
 
@@ -126,7 +126,7 @@ FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir) {
     }
 
     int ind_nd;
-    if((ind_nd = open(nd, O_CREAT | O_WRONLY | O_TRUNC, 0666)) == -1) {
+    if((ind_nd = open(nd, O_CREAT | O_WRONLY | O_TRUNC, 0644)) == -1) {
         if(errno == EEXIST) {
             return NAME_EXIST;
         }
@@ -147,6 +147,12 @@ FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir) {
         return OPERATION_ERROR;
     }
 
+    if(save_atr == 1) {
+        struct stat st;
+        stat(fp, &st);
+        chmod(nd, st.st_mode);
+    }
+
     free(nd);
     free(fp);
     close(ind_nd);
@@ -155,14 +161,46 @@ FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir) {
     return SUCCESS;
 }
 
-FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir) {
+FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {
+    wchar_t* path = find_slnk_path(copy_link);
+    size_t size = wcslen(copy_link);
+    while(size > 0 && copy_link[size - 1] != '/') {
+        size--;
+    }
+    wchar_t* name = wsubstring(copy_link, size + 1, wcslen(copy_link) - size);
+    size = wcslen(new_dir) + wcslen(name) + 2;
+    wchar_t* next_path = (wchar_t*)calloc(size, sizeof(wchar_t));
+    swprintf(next_path, size, L"%ls/%ls", new_dir, name);
+
+    FOPR status = create_slnk(path, next_path);
+    mvprintw(0, 0, "%ls %ls ", path, next_path);
+    refresh();
+
+    if(save_attr == 1) {
+        struct stat st;
+        char* copy = wchtochs(copy_link);
+        stat(copy, &st);
+        char* buffer = wchtochs(next_path);
+        chmod(buffer, st.st_mode);
+        free(buffer);
+        free(copy);
+    }
+
+    free(next_path);
+    free(path);
+    free(name);
+
+    return status;
+}
+
+FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
     char* cd = wchtochs(copy_dir);
     char* nd = wchtochs(new_dir);
 
     DIR *dir;
     struct dirent* d;
     FOPR status = SUCCESS;
-    int st = mkdir(nd, 0777);
+    int st = mkdir(nd, 0644);
     if(st == -1) {
         if(errno == EEXIST) {
             return NAME_EXIST;
@@ -186,9 +224,13 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir) {
         wchar_t* wnew_path = cstowchs(new_path);
 
         if(get_file_type(wnext_path) == DIRECTORY) {
-            status = cpydir(wnext_path, wnew_path);
-        } else {
-            status = cpyfile(wnext_path, wnew_path);
+            status = cpydir(wnext_path, wnew_path, save_attr, link);
+        }
+        else if(get_file_type(wnew_path) == SYMBOL_LINK && link == 1) {
+            cpyslnk(wnext_path, new_dir, save_attr);
+        } 
+        else {
+            status = cpyfile(wnext_path, wnew_path, save_attr, link);
         }
 
         free(next_path);
@@ -216,6 +258,8 @@ FOPR create_slnk(wchar_t* dir, wchar_t* name) {
         } else {
             status = OPERATION_ERROR;
         }
+    } else {
+        status = SUCCESS;
     }
 
     free(d);

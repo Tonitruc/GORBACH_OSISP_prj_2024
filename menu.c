@@ -46,6 +46,43 @@ bool mcontains(MENU* menu, const wchar_t* string) {
     return false;
 }
 
+int find_mitem(MITEM** items, wchar_t* string) {
+    size_t size = size_items(items);
+
+    for(int i = 0; i < size; i++) {
+        if(wcscmp(items[i]->string, string) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+//group
+bool is_clear_group(MENU* menu) {
+    bool is_clear = true;
+    for(int i = 0; i < menu->size; i++) {
+        if(menu->group[i] != NULL) {
+            return false;
+        }
+    }
+
+    return is_clear;
+}
+
+void group_act(MENU* menu, int index) {
+    if(menu->group[index] == NULL) {
+        menu->group[index] = menu->items[index];
+    } else {
+        menu->group[index] = NULL;
+    }
+}
+
+void clear_group(MENU* menu) {
+    for(int i = 0; i < menu->size; i++) {
+        menu->group[i] = NULL;
+    }
+}
+
 //-------------Menu Settings-------------
 
 bool init_menu_win(MENU* menu, WINDOW* pwin) {
@@ -132,6 +169,9 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
     menu->div_static_size = true;
 
     menu->slctd_item_color_pair = 0;
+
+    menu->group = (MITEM**)calloc(menu->size + 1, sizeof(MITEM*));
+    menu->group_color = MENU_GROUP;
 
     return menu;     
 }
@@ -403,7 +443,16 @@ void print_menu_point(MENU* menu, int num) {
             mvwaddwstr_color(menu->subwin, menu->items[num]->y , menu->items[num]->x, 
                 buffer, menu->slctd_item_color_pair);
             
-        } else {    
+        } 
+        else if(menu->group[num] != NULL) {
+            if(menu->set_menu & DESIG_ITEMS){
+                mvwaddch(menu->subwin, menu->items[num]->y, menu->items[num]->x - offset, 
+                    menu->slct_sym | COLOR_PAIR(color));
+            }
+            mvwaddwstr_color(menu->subwin, menu->items[num]->y , menu->items[num]->x, 
+                buffer, menu->group_color);
+        }
+        else {    
             color = menu->items[num]->color == -1? 0 : menu->items[num]->color;
             mvwaddwstr_color(menu->subwin, menu->items[num]->y , menu->items[num]->x, 
                     buffer, color);
@@ -448,39 +497,34 @@ void unprint_menu(MENU* menu) {
 void menu_driver(MENU* menu, REQ_KEY key) {
     int prev_selected_item = menu->select;
     bool need_scroll = false;
-    switch (key)
-    {
-        case REQ_DOWN_ITEM: { 
-            if((menu->select + menu->columns) < menu->size) { 
-                menu->select += menu->columns; 
-                need_scroll = true; 
-            } 
-            break;
-        }
-        case REQ_UP_ITEM: { 
-            if(menu->select - menu->columns >= 0) { 
-                menu->select -= menu->columns; 
-                need_scroll = true; 
-            } 
-            break; 
-        }
-        case REQ_LEFT_ITEM: { 
-            if(menu->select > 0 && menu->type == GRID) { 
-                menu->select--; 
-                need_scroll = true; 
-            } 
-            break;
-        }
-        case REQ_RIGHT_ITEM: { 
-            if(menu->select < menu->size - 1 && menu->type == GRID) { 
-                menu->select++; 
-                need_scroll = true; 
-            } 
-            break; 
-        }
-        default: break;
+    if(key & REQ_DOWN_ITEM) { 
+        if((menu->select + menu->columns) < menu->size) { 
+            menu->select += menu->columns; 
+            need_scroll = true; 
+        } 
+    }
+    if(key & REQ_UP_ITEM) { 
+        if(menu->select - menu->columns >= 0) { 
+            menu->select -= menu->columns; 
+            need_scroll = true; 
+        } 
+    }
+    if(key & REQ_LEFT_ITEM) { 
+        if(menu->select > 0 && menu->type == GRID) { 
+            menu->select--; 
+            need_scroll = true; 
+        } 
+    }
+    if(key & REQ_RIGHT_ITEM) { 
+        if(menu->select < menu->size - 1 && menu->type == GRID) { 
+            menu->select++; 
+            need_scroll = true; 
+        }  
     }
     if(need_scroll) {
+        if(key & GROUP_ACT) {
+            group_act(menu, prev_selected_item);
+        }
         menu->iselect = menu->items[menu->select];
         change_menu_action(menu, key, prev_selected_item);
     }
@@ -508,27 +552,21 @@ void scroll_menu(MENU* menu, REQ_KEY key) {
 }
 
 void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item) {
-    switch (key)
-    { 
-    case REQ_DOWN_ITEM: {
+    if(key & REQ_DOWN_ITEM) {
         if(menu->iselect->y == menu->max_rows + 1 && menu->set_menu & USE_COL_NAME) {
-            scroll_menu(menu, key);
+            scroll_menu(menu, REQ_DOWN_ITEM);
         }
         else if(menu->iselect->y == menu->max_rows && menu->set_menu & NON_COL_NAME) {
-            scroll_menu(menu, key);
+            scroll_menu(menu, REQ_DOWN_ITEM);
         }
-        break;
     }
-    case REQ_UP_ITEM: {
+    if(key & REQ_UP_ITEM) {
         if(menu->iselect->y == -1 && menu->set_menu & NON_COL_NAME) {
-            scroll_menu(menu, key);
+            scroll_menu(menu, REQ_UP_ITEM);
         }
         else if(menu->iselect->y == 0 && menu->set_menu & USE_COL_NAME) {
-            scroll_menu(menu, key);
+            scroll_menu(menu, REQ_UP_ITEM);
         }
-        break;
-    }
-    default: break; 
     }
 
     if(menu->type == GRID) {
@@ -660,6 +698,8 @@ void set_new_items(MENU* menu, MITEM** new_items, int select) {
     menu->iselect = menu->items[menu->select];
     menu->rows = menu->size / menu->columns + 1;
 
+    free(menu->group);
+    menu->group = (MITEM**)calloc(menu->size + 1, sizeof(MITEM*));
     calc_item_coord(menu);
 }
 

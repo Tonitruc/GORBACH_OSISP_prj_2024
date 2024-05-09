@@ -24,7 +24,7 @@ void ext_start_color() {
     init_color(COLOR_LIGHT_YELLOW, 1000, 1000, 0);
     init_color(COLOR_ORANGE, 800, 500, 0);
     init_color(COLOR_LIGHT_GREEN, 126, 800, 0);
-    init_color(COLOR_OLIVE, 10, 01, 01);
+    init_color(COLOR_OLIVE, 1000, 800, 0);
     
     init_pair(MENU_GREEN, COLOR_LIGHT_GREEN, COLOR_DEEP_BLUE);
     init_pair(MENU_YELLOW, COLOR_ORANGE, COLOR_DEEP_BLUE);
@@ -46,6 +46,7 @@ void ext_start_color() {
 
     init_pair(SLCTD_EXCEPTION_COLOR, COLOR_BLACK, COLOR_WHITE);
     init_pair(MENU_TAB_PANEL, COLOR_WHITE, COLOR_VIOLET);
+    init_pair(MENU_GROUP, COLOR_OLIVE, COLOR_DEEP_BLUE);
 }
 
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair) {

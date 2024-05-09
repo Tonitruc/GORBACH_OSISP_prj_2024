@@ -85,7 +85,6 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep);
 void print_current_file(FILE_PANEL *file_panel, bool with_clear);
 void print_tab_space(FILE_PANEL *file_panel);
 void print_current_directory(FILE_PANEL *file_panel, bool with_clear);
-int dialog_win_cm(FILE_PANEL* file_panel, wchar_t* title);
 
 //file CRUD
 int del_file(FILE_PANEL* file_panel);
@@ -107,4 +106,6 @@ MITEM** init_files(LIST* list);
 
 bool create_sym_link(FILE_PANEL* file_panel);
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep);
-wchar_t* get_select_file(FILE_PANEL* file_panel);
+
+#define get_select_file(file_panel) get_file(file_panel, 0);
+wchar_t* get_file(FILE_PANEL* file_panel, int n);
