@@ -151,11 +151,17 @@ TEXT_REQ input_text_box(TEXT_BOX* tb) {
             }
             break;
         } 
-        else if (sym == KEY_RIGHT && tb->verify) {
-            menu_driver(tb->menu, REQ_RIGHT_ITEM);
+        else if (sym == KEY_RIGHT) {
+            form_driver(tb->form, REQ_NEXT_CHAR);
+            if(tb->verify) {
+                menu_driver(tb->menu, REQ_RIGHT_ITEM);
+            }
         } 
         else if (sym == KEY_LEFT && tb->verify) {
-            menu_driver(tb->menu, REQ_LEFT_ITEM);
+            form_driver(tb->form, REQ_PREV_CHAR);
+            if(tb->verify) {
+                menu_driver(tb->menu, REQ_LEFT_ITEM);
+            }
         }
         else if(sym == KEY_MOUSE) {
             MEVENT mevent;

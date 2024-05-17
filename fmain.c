@@ -69,8 +69,8 @@ bool init_app() {
 
 	INIT_BASE_WIN
 
-	wpanels[0] = init_wpanel(init_file_panel(stdscr, 0));
-	wpanels[1] = init_wpanel(init_file_panel(stdscr, 1));
+	wpanels[0] = init_wpanel(init_file_panel(stdscr, 0), true);
+	wpanels[1] = init_wpanel(init_file_panel(stdscr, 1), false);
 	wpanels[0]->dep = wpanels[1];
 	wpanels[1]->dep = wpanels[0];
 
@@ -97,7 +97,7 @@ bool init_app() {
 
 bool resize_app() {
     wresize(upper_panel->parwin, 1, getmaxx(stdscr));
-    wresize(upper_panel->subwin,1, getmaxx(stdscr));
+    wresize(upper_panel->subwin, 1, getmaxx(stdscr));
 
 	werase(stdscr);
     resize_menu(upper_panel);

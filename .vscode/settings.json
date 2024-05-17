@@ -14,6 +14,7 @@
         "fwchar.h": "c",
         "fcntl.h": "c",
         "stat.h": "c",
-        "list.h": "c"
+        "list.h": "c",
+        "toggle_button.h": "c"
     }
 }

@@ -21,8 +21,8 @@
 #define COLS_PERCENT 0.50
 #define ROWS_PERCENT 0.10
 
-#define FILE_PANEL_SIZE(height, width) height = (LINES - 2); width = (COLS - COLS_PERCENT * COLS)
-#define PANEL_START_POS(starty, startx, num) starty = 1; startx = 0 + num * COLS * COLS_PERCENT
+#define FILE_PANEL_SIZE(height, width) height = (LINES - 2); width = (COLS / 2)
+#define PANEL_START_POS(starty, startx, num) starty = 1; startx = (0 + num * COLS / 2)
 
 #define FILE_MENU_START_ROW 4
 #define FILE_MENU_START_COL 1
@@ -76,7 +76,7 @@ typedef struct _FILE_PANEL {
 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num);
 bool resize_file_panel(FILE_PANEL* file_panel, int num);
-void refresh_file_panel(FILE_PANEL *file_panel);
+void refresh_file_panel(FILE_PANEL* file_panel, short color);
 MITEM** load_dir(FILE_PANEL* file_panel);
 bool init_file_menu(FILE_PANEL* file_panel, MITEM** items);
 void print_selected_file_space(FILE_PANEL* file_panel);
@@ -107,5 +107,5 @@ MITEM** init_files(LIST* list);
 bool create_sym_link(FILE_PANEL* file_panel);
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep);
 
-#define get_select_file(file_panel) get_file(file_panel, 0);
+#define get_select_file(file_panel) get_file(file_panel, 0)
 wchar_t* get_file(FILE_PANEL* file_panel, int n);

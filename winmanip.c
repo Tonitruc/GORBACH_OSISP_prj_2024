@@ -22,17 +22,21 @@ void ext_start_color() {
     init_color(COLOR_BEIGE, 209, 188, 138);
     init_color(COLOR_GRAY, 255, 255, 255);
     init_color(COLOR_LIGHT_YELLOW, 1000, 1000, 0);
-    init_color(COLOR_ORANGE, 800, 500, 0);
+    init_color(COLOR_ORANGE, 1000, 500, 0);
     init_color(COLOR_LIGHT_GREEN, 126, 800, 0);
     init_color(COLOR_OLIVE, 1000, 800, 0);
+    init_color(COLOR_SKY, 100, 600, 1000);
+    init_color(COLOR_LIGHT_RED, 1000, 100, 100);
     
     init_pair(MENU_GREEN, COLOR_LIGHT_GREEN, COLOR_DEEP_BLUE);
-    init_pair(MENU_YELLOW, COLOR_ORANGE, COLOR_DEEP_BLUE);
+    init_pair(MENU_OLIVE, COLOR_OLIVE, COLOR_DEEP_BLUE);
     init_pair(MENU_RED, COLOR_RED, COLOR_DEEP_BLUE);
     init_pair(MENU_GRAY, COLOR_GRAY, COLOR_DEEP_BLUE);
     init_pair(MENU_WHITE, COLOR_WHITE, COLOR_DEEP_BLUE);
-    init_pair(MENU_BLUE, COLOR_BLUE, COLOR_DEEP_BLUE);
+    init_pair(MENU_BLUE, COLOR_SKY, COLOR_DEEP_BLUE);
     init_pair(MENU_BEIGE, COLOR_BEIGE, COLOR_DEEP_BLUE);
+    init_pair(MENU_ORANGE, COLOR_ORANGE, COLOR_DEEP_BLUE);
+    init_pair(MENU_LIGHT_RED, COLOR_LIGHT_RED, COLOR_DEEP_BLUE);
     init_pair(MENU_SLCTD_ITEM, COLOR_RED, COLOR_CYAN);
 
 	init_pair(TOP_PANEL_COLOR, COLOR_WHITE, COLOR_DARK_BLUE);
@@ -46,7 +50,8 @@ void ext_start_color() {
 
     init_pair(SLCTD_EXCEPTION_COLOR, COLOR_BLACK, COLOR_WHITE);
     init_pair(MENU_TAB_PANEL, COLOR_WHITE, COLOR_VIOLET);
-    init_pair(MENU_GROUP, COLOR_OLIVE, COLOR_DEEP_BLUE);
+    init_pair(MENU_GROUP, COLOR_ORANGE, COLOR_DEEP_BLUE);
+    
 }
 
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair) {

@@ -16,14 +16,18 @@
 #define COLOR_LIGHT_GREEN 16
 #define COLOR_DARK_BLUE 17
 #define COLOR_OLIVE 18
+#define COLOR_LIGHT_RED 19
+#define COLOR_SKY 20
 
 #define MENU_GREEN 30
-#define MENU_YELLOW 31
+#define MENU_OLIVE 31
 #define MENU_BLUE 32
 #define MENU_RED 33
 #define MENU_GRAY 34
 #define MENU_WHITE 35
 #define MENU_BEIGE 36
+#define MENU_ORANGE 60
+#define MENU_LIGHT_RED 61
 
 #define MENU_SLCTD_ITEM 37
 

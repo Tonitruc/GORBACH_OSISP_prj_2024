@@ -1,6 +1,6 @@
 #include "wpanel.h"
 
-WPANEL* init_wpanel(FILE_PANEL* file_panel) {
+WPANEL* init_wpanel(FILE_PANEL* file_panel, bool is_select) {
     WPANEL* wpanel = (WPANEL*)calloc(1, sizeof(WPANEL));
     wpanel->fpanel = file_panel;
     wpanel->mode = FILE_LIST;
@@ -8,20 +8,22 @@ WPANEL* init_wpanel(FILE_PANEL* file_panel) {
     wpanel->scroll.beg_pos = 0;
     wpanel->scroll.file = -1;
     wpanel->scroll.eof = false;
+    wpanel->is_select = is_select;
 
     return wpanel;
 }
 
 void refersh_wpanel(WPANEL* wpanel) {
+    short color = wpanel->is_select? MENU_WHITE : MENU_GRAY;
     if(wpanel->mode == FILE_LIST) {
-        refresh_file_panel(wpanel->fpanel);
+            refresh_file_panel(wpanel->fpanel, color);
     } 
     else if(wpanel->mode == FILE_VIEW) {
-        show_file_data(wpanel->dep, wpanel);
+            show_file_data(wpanel->dep, wpanel, color);
         wrefresh(wpanel->fpanel->panel);
     } 
     else if(wpanel->mode == FILE_INFO) {
-        print_ex_finfo(wpanel->dep, wpanel);
+        print_ex_finfo(wpanel->dep, wpanel, color);
         wrefresh(wpanel->fpanel->panel);
     }
 }
@@ -32,6 +34,8 @@ WPANEL* change_wpanel(WPANEL* wpanel) {
         chdir(buffer);
         free(buffer);
     } 
+    wpanel->dep->is_select = true;
+    wpanel->is_select = false;
     return wpanel->dep;
 
 }
@@ -65,12 +69,15 @@ void free_wpanel(WPANEL* wpanel) {
 
 }
 
-void show_file_data(WPANEL* mpanel, WPANEL* spanel) {
+void show_file_data(WPANEL* mpanel, WPANEL* spanel, short color) {
 	wchar_t* file_name;
 	file_name = get_select_file(mpanel->fpanel);
 
 	spanel->scroll.file = open(wchtochs(file_name), O_RDONLY);
 	werase(spanel->fpanel->panel);
+    wattron(spanel->fpanel->panel, COLOR_PAIR(color));
+    box(spanel->fpanel->panel, 0, 0);
+    wattroff(spanel->fpanel->panel, COLOR_PAIR(color));
 	if(spanel->scroll.file == -1) {
 		mvwprintw(spanel->fpanel->panel, 1, 1, "Не удалось открыть файл %ls", file_name);
         return;
@@ -81,7 +88,6 @@ void show_file_data(WPANEL* mpanel, WPANEL* spanel) {
     else {
 		print_file_data(spanel);
 	}
-    box(spanel->fpanel->panel, 0, 0);
     mvwprintw(spanel->fpanel->panel, 0, getmaxx(spanel->fpanel->panel) / 2 - 5, " Содержимое %ld", spanel->scroll.beg_pos);
     close(spanel->scroll.file);
 }
@@ -132,7 +138,8 @@ void print_file_data(WPANEL* wpanel) {
 
 void wkeypad_handler(WPANEL* wpanel, int key) {
     if(wpanel->mode == FILE_LIST) {
-        if(keyboard_event_handler(wpanel->fpanel, key, wpanel->dep->fpanel)) {
+        WPANEL* dep = wpanel->mode == FILE_LIST && wpanel->dep->mode == FILE_LIST? wpanel->dep : wpanel;
+        if(keyboard_event_handler(wpanel->fpanel, key, dep->fpanel)) {
             wpanel->dep->scroll.beg_pos = 0;
             wpanel->dep->scroll.eof = false;
         }
@@ -158,11 +165,16 @@ void wmouse_handler(WPANEL* wpanel, MEVENT mevent) {
     }
 }
 
-void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel) {
+void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel, short color) {
     wchar_t* file_name;
 	file_name = get_select_file(mpanel->fpanel);
     werase(spanel->fpanel->panel);
     WINDOW* subwin = wbrt_derwin(spanel->fpanel->panel, 1);
+
+    wattron(spanel->fpanel->panel, COLOR_PAIR(color));
+    box(spanel->fpanel->panel, 0, 0);
+    wattroff(spanel->fpanel->panel, COLOR_PAIR(color));
+    mvwprintw(spanel->fpanel->panel, 0, getmaxx(spanel->fpanel->panel) / 2 - 5, " Информация ");
 
 	int fd = open(wchtochs(file_name), O_RDONLY);
     if(fd == -1) {
@@ -174,8 +186,6 @@ void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel) {
     if(fstat(fd, &st) == -1) {
         mvwprintw(subwin, 0, 0, "Не удалось получить информацию о %ls", file_name);
     }
-    mvwprintw(spanel->fpanel->panel, 0, getmaxx(spanel->fpanel->panel) / 2 - 5, " Информация ");
-    box(spanel->fpanel->panel, 0, 0);
 
     char buffer[20];
     struct tm* time_m;

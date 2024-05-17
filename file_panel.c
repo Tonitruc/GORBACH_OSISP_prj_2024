@@ -21,12 +21,12 @@ bool init_file_menu(FILE_PANEL* file_panel, MITEM** items) {
     set_columns_size(file_panel->file_menu, (double*)3, 1.0, 10.0, 17.0);
     set_column_name(file_panel->file_menu, L"Имя", L"Размер", L"Время правки");
     init_color_slctd_item(file_panel->file_menu, MENU_SLCTD_ITEM);
-    file_panel->file_menu->is_sort = true;
+    file_panel->file_menu->is_sort = false;
 
     return true;
 }
 
-void init_tabs_list(FILE_PANEL* file_panel) {
+void init_tabs_list(FILE_PANEL* file_panel, int num) {
 	MITEM** tabs_panel_items = (MITEM**)calloc(4, sizeof(MITEM*));
     tabs_panel_items[0] = init_menu_item(L"[ ^ ]");
 	tabs_panel_items[1] = init_menu_item(L"[ + ]");
@@ -44,7 +44,9 @@ void init_tabs_list(FILE_PANEL* file_panel) {
 
     file_panel->amount_tabs = 0;
 
-    WINDOW* tab_win = crt_box_win(12, 40, 5, getcurx(file_panel->panel) + 2, SLCTD_EXCEPTION_COLOR, L"");
+    int start_x, start_y;
+    PANEL_START_POS(start_y, start_x, num);
+    WINDOW* tab_win = crt_box_win(12, 40, 5, start_x + 2, SLCTD_EXCEPTION_COLOR, L"");
     WINDOW* subwin = wbrt_derwin(tab_win, SLCTD_EXCEPTION_COLOR);
 
     MITEM** tabs_items = (MITEM**)calloc(1, sizeof(MITEM*));
@@ -76,14 +78,17 @@ FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     MITEM** dir_file = load_dir(file_panel);
     init_file_menu(file_panel, dir_file);
 
-    init_tabs_list(file_panel);
+    init_tabs_list(file_panel, num);
     return file_panel;
 }
 
 //update file panel
 
-void refresh_file_panel(FILE_PANEL* file_panel) {
+void refresh_file_panel(FILE_PANEL* file_panel, short color) {
+    werase(file_panel->panel);
+    wattron(file_panel->panel, COLOR_PAIR(color));
     box(file_panel->panel, 0, 0);
+    wattroff(file_panel->panel, COLOR_PAIR(color));
     print_selected_file_space(file_panel);
     print_tab_space(file_panel);
     print_current_file(file_panel, true);
@@ -103,6 +108,7 @@ bool resize_file_panel(FILE_PANEL* file_panel, int num)  {
     wresize(file_panel->panel, height, width);    
     mvwin(file_panel->panel, starty, startx);
     mvderwin(file_panel->panel, starty, startx);
+    mvprintw(0, 0 + num * 20, "%d %d %d %d", height, width, starty, startx);
 
     wresize(file_panel->menu_sub_win, height - FILE_MENU_FORMAT_SIZE_ROW - SPACE_SELECTED_ELEMENT_ROW,   
                 width - FILE_MENU_FORMAT_SIZE_COL);
@@ -225,20 +231,6 @@ void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
 
 //help function
 
-LIST* get_group(FILE_PANEL* file_panel) {
-    FINFO* finfo;
-    LIST* group = init_list();
-    if(is_clear_group(file_panel->file_menu)) {
-        add_last(group, get_n_element(file_panel->files_info, file_panel->file_menu->select));
-    } else {
-        for(int i = 0; i < file_panel->file_menu->size; i++) {
-            add_last(group, get_n_element(file_panel->files_info, i / 3)->data);
-        }
-    }
-
-    return group;
-}
-
 wchar_t* get_file(FILE_PANEL* file_panel, int n) {
     size_t cur_dir_size = wcslen(file_panel->current_directory);
     wchar_t* cur_file;
@@ -278,6 +270,23 @@ wchar_t* get_file(FILE_PANEL* file_panel, int n) {
     return cur_file;
 }
 
+LIST* get_group(FILE_PANEL* file_panel) {
+    LIST* group = init_list();
+
+    if(group_size(file_panel->file_menu) == 0) {
+        add_last(group, get_n_element(file_panel->files_info, mslct(file_panel->file_menu))->data);
+        return group;
+    }
+
+    for(int i = 0; i < file_panel->file_menu->size; i++) {
+        if(file_panel->file_menu->group[i] != NULL) {
+            add_last(group, get_n_element(file_panel->files_info, i / 3)->data);
+        }
+    }
+
+    return group;
+}
+
 MITEM** init_files(LIST* list) {
     MITEM **items = (MITEM**)calloc(list->size * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
 
@@ -289,13 +298,13 @@ MITEM** init_files(LIST* list) {
                 items[num] = init_menu_item(temp->data->file_name); 
                 switch (temp->data->file_type)
                 {
-                case DIRECTORY: {items[num]->color = MENU_YELLOW; items[num]->pnt_sym = '/'; break; }
+                case DIRECTORY: {items[num]->color = MENU_OLIVE; items[num]->pnt_sym = '/'; break; }
                 case PDF: {items[num]->color = MENU_RED; items[num]->pnt_sym = ' '; break; }
                 case DOC: {items[num]->color = MENU_BLUE; break; }
                 case IMAGE: {items[num]->color = MENU_GREEN; break; }
                 case ARCHIVE: {items[num]->color = MENU_GRAY; break;}
                 case SYMBOL_LINK: {items[num]->color = MENU_BLUE; items[num]->pnt_sym = '@'; break;}
-                case BAD_SYMBOL_LINK: { items[num]->color = MENU_RED; items[num]->pnt_sym = '!'; break;}
+                case BAD_SYMBOL_LINK: { items[num]->color = MENU_LIGHT_RED; items[num]->pnt_sym = '!'; break;}
                 default: items[num]->color = MENU_WHITE; items[num]->pnt_sym = '*';
                 }
             }
@@ -545,6 +554,7 @@ bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
             req_key = find_click_item(file_panel->file_menu, mevent);
             if(req_key == COLUMN_CLICKED) {
                 file_panel->is_sort = true;
+                file_panel->file_menu->is_sort = true;
                 file_panel->sort_dir = file_panel->sort_dir == 1? 0 : 1;
                 if(file_panel->file_menu->sorted_col == 0) {
                     sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_name_compare, file_panel->sort_dir);
@@ -662,22 +672,31 @@ FOPR file_operation_handler(FOPR status) {
 }
 
 int del_file(FILE_PANEL* file_panel) {
+    LIST* group = get_group(file_panel);
+    LIST_NODE* del_el = group->head;
+
     int status = -1;
-    wchar_t* buffer = get_select_file(file_panel);
+    while(del_el->next != NULL) {
 
-    MSG_BOX* msg = init_message_box(5, 30, L"Удаление", L"Удалить файл?", true);
-    set_color_msg(msg, WARNING_BOX_COLOR);
-    status = show_msg(msg);
+        size_t size = wcslen(del_el->data->full_path) + wcslen(del_el->data->file_name) + 2;
+        wchar_t* del_file = (wchar_t*)calloc(size, sizeof(wchar_t));
+        swprintf(del_file, size, L"%ls/%ls", del_el->data->full_path, del_el->data->file_name);
 
-    if(status != -1) {
-        bool is_dir = get_file_type(buffer) == DIRECTORY;
-        status = delete_file(buffer, is_dir);
-        if(file_operation_handler(status)) {
-            set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+        MSG_BOX* msg = init_message_box(5, 30, L"Удаление", L"Удалить файл?", true);
+        set_color_msg(msg, WARNING_BOX_COLOR);
+        status = show_msg(msg);
+
+        if(status != -1) {
+            bool is_dir = get_file_type(del_file) == DIRECTORY;
+            status = delete_file(del_file, is_dir);
+            if(file_operation_handler(status)) {
+                set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+            }
         }
+
+    free(del_file);
     }
 
-    free(buffer);
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
 
@@ -916,33 +935,39 @@ bool create_sym_link(FILE_PANEL* file_panel) {
 
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     LIST* group = get_group(file_panel);
-    LIST_NODE* list_node = group->head;
-
-    wchar_t* copy_file = get_select_file(file_panel);
-    size_t size = wcslen(dep->current_directory) + wcslen(file_panel->file_menu->iselect->string) + 2;
-    wchar_t* new_dir = (wchar_t*)calloc(size, sizeof(wchar_t));
-    swprintf(new_dir, size, L"%ls/%ls", dep->current_directory, file_panel->file_menu->iselect->string);
 
     int save_attr, link;
     int status = dialog_win_cm(file_panel, dep, L" КОПИРОВАНИЕ ", &save_attr, &link);
-    if(status != -1) {
-        if(get_file_type(copy_file) == DIRECTORY) {
-            status = cpydir(copy_file, new_dir, save_attr, link);
-        }
-        else if(get_file_type(copy_file) == SYMBOL_LINK && link == 1) {
-            status = cpyslnk(copy_file, dep->current_directory, save_attr);
-        } 
-        else {
-            if(!mcontains(dep->file_menu, file_panel->file_menu->iselect->string)) {
-                status = cpyfile(copy_file, new_dir, save_attr, link);
-            } else {
-                status = NAME_EXIST;
+
+    LIST_NODE* cpy_el = group->head;
+    while(cpy_el != NULL) {
+        size_t size = wcslen(cpy_el->data->full_path) + wcslen(cpy_el->data->file_name) + 2;
+        wchar_t* copy_file = (wchar_t*)calloc(size, sizeof(wchar_t));
+        swprintf(copy_file, size, L"%ls/%ls", cpy_el->data->full_path, cpy_el->data->file_name);
+        size = wcslen(dep->current_directory) + wcslen(cpy_el->data->file_name) + 2;
+        wchar_t* new_dir = (wchar_t*)calloc(size, sizeof(wchar_t));
+        swprintf(new_dir, size, L"%ls/%ls", dep->current_directory, cpy_el->data->file_name);
+
+        if(status != -1) {
+            if(get_file_type(copy_file) == DIRECTORY) {
+                status = cpydir(copy_file, new_dir, save_attr, link);
             }
-        }
-        if(file_operation_handler(status)) {
-            set_new_items(dep->file_menu, load_dir(dep), 0);
+            else if(get_file_type(copy_file) == SYMBOL_LINK && link == -1) {
+                status = cpyslnk(copy_file, dep->current_directory, save_attr);
+            } 
+            else {
+                if(!mcontains(dep->file_menu, file_panel->file_menu->iselect->string)) {
+                    status = cpyfile(copy_file, new_dir, save_attr, link);
+                } else {
+                    status = NAME_EXIST;
+                }
+            }
+            if(file_operation_handler(status)) {
+                set_new_items(dep->file_menu, load_dir(dep), 0);
         } else return false;
+        cpy_el = cpy_el->next;
     } 
+    }
 
     return true;
 }

@@ -171,3 +171,4 @@ int mslct(MENU* menu);
 bool mcontains(MENU* menu, const wchar_t* string);
 bool is_clear_group(MENU* menu);
 int* get_group_pnt(MENU* menu);
+int group_size(MENU* menu);

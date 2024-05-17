@@ -36,12 +36,13 @@ int main() {
 						if(choice == 0) {
 							wkeypad_handler(wpanel, 'S');
 						} 
-						else if(choice == 3) {
+						else if(choice == 2 && wpanel->fpanel->is_sort) {
 							wpanel->fpanel->is_sort = false;
+    						wpanel->fpanel->file_menu->is_sort = false;
 							int select = wpanel->fpanel->file_menu->select;
 							set_new_items(wpanel->fpanel->file_menu, load_dir(wpanel->fpanel), select);
 						}
-						else if(choice == 4) {
+						else if(choice == 3) {
 							find_file(wpanel->fpanel);
 						}
 					} 
@@ -49,6 +50,10 @@ int main() {
 						choice = show_setting_panel_window(1);
 						change_mode(wpanels[1], choice);
 					}
+				}
+				else if(wenclose(lower_panel->parwin, mevent.y, mevent.x) && mevent.bstate & BUTTON1_RELEASED) {
+					find_click_item(lower_panel, mevent);
+					wkeypad_handler(wpanel, lower_panel->select + '0');
 				} else {
 					wmouse_handler(wpanel, mevent);
 				}

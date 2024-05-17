@@ -173,8 +173,6 @@ FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {
     swprintf(next_path, size, L"%ls/%ls", new_dir, name);
 
     FOPR status = create_slnk(path, next_path);
-    mvprintw(0, 0, "%ls %ls ", path, next_path);
-    refresh();
 
     if(save_attr == 1) {
         struct stat st;
@@ -200,7 +198,7 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
     DIR *dir;
     struct dirent* d;
     FOPR status = SUCCESS;
-    int st = mkdir(nd, 0644);
+    int st = mkdir(nd, 0777);
     if(st == -1) {
         if(errno == EEXIST) {
             return NAME_EXIST;
@@ -226,8 +224,8 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
         if(get_file_type(wnext_path) == DIRECTORY) {
             status = cpydir(wnext_path, wnew_path, save_attr, link);
         }
-        else if(get_file_type(wnew_path) == SYMBOL_LINK && link == 1) {
-            cpyslnk(wnext_path, new_dir, save_attr);
+        else if(get_file_type(wnew_path) == SYMBOL_LINK && link == -1) {
+            status = cpyslnk(wnext_path, new_dir, save_attr);
         } 
         else {
             status = cpyfile(wnext_path, wnew_path, save_attr, link);

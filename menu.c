@@ -83,6 +83,17 @@ void clear_group(MENU* menu) {
     }
 }
 
+int group_size(MENU* menu) {
+    int size = 0;
+    for(int i = 0; i < menu->size; i++) {
+        if(menu->group[i] != NULL) {
+            size++;
+        }
+    }
+
+    return size;
+}
+
 //-------------Menu Settings-------------
 
 bool init_menu_win(MENU* menu, WINDOW* pwin) {

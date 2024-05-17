@@ -23,16 +23,17 @@ typedef struct _WORK_PANEL {
     PANEL_MODE mode;
 
     struct _WORK_PANEL* dep;
+    bool is_select;
 } WPANEL;
 
-WPANEL* init_wpanel(FILE_PANEL* file_panel);
+WPANEL* init_wpanel(FILE_PANEL* file_panel, bool is_select);
 void refersh_wpanel(WPANEL* wpanel);
 void free_wpanel(WPANEL* wpanel);
 WPANEL* change_wpanel(WPANEL* wpanel);
 void resize_wpanel(WPANEL* wpanel, int num);
 void change_mode(WPANEL* wpanel, PANEL_MODE mode);
-void show_file_data(WPANEL* mpanel, WPANEL* spanel);
+void show_file_data(WPANEL* mpanel, WPANEL* spanel, short color);
 void print_file_data(WPANEL* wpanel);
 void wkeypad_handler(WPANEL* wpanel, int key);
 void wmouse_handler(WPANEL* wpanel, MEVENT mevent);
-void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel);
+void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel, short color);
