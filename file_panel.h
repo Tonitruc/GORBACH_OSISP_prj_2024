@@ -87,7 +87,7 @@ void print_tab_space(FILE_PANEL *file_panel);
 void print_current_directory(FILE_PANEL *file_panel, bool with_clear);
 
 //file CRUD
-int del_file(FILE_PANEL* file_panel);
+int del_file(FILE_PANEL* file_panel, bool access);
 int create_dir(FILE_PANEL* file_panel);
 bool correction_file(FILE_PANEL* file_panel);
 bool open_file(FILE_PANEL* file_panel);

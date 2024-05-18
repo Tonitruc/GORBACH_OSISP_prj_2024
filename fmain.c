@@ -25,7 +25,7 @@ MENU* command_panel_menu;
 
 const wchar_t* command_points[] = {
 	L" Символьная ссылка ",
-	L" Создать файл ",
+	L" Очистить группу ",
 	L" Без сортировки ",
 	L" Поиск файла "
 };

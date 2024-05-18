@@ -639,7 +639,7 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 		}
         case '8': {
             if(file_panel->file_menu->select != 0)
-			    del_file(file_panel);
+			    del_file(file_panel, true);
             break;
 		}
         case '4': {
@@ -676,34 +676,41 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 
 FOPR file_operation_handler(FOPR status) {
     if(status == OPERATION_ERROR) {
-        MSG_BOX* exp = init_message_box(7, 40, L" ОШИБКА ", L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично", false);
+        MSG_BOX* exp = init_message_box(7, 40, L" ОШИБКА ", L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично. Пропустить?", true);
         show_msg(exp); 
     } else if(status == SDIR_NOT_EXIST) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Исходный каталог не существует.", false);
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Исходный каталог не существует. Пропустить?", true);
         show_msg(exp); 
     } else if(status == RDIR_NOT_EXITS) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Результирующий каталог не существует.", false);
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Результирующий каталог не существует. Пропустить?", true);
         show_msg(exp); 
     } else if(status == NAME_EXIST) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя уже занято.", false);
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя уже занято. Пропустить?", true);
         show_msg(exp); 
     } else if(status == EMPTY_NAME) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Пустое имя.", false);
+        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Пустое имя. Пропустить?", true);
         show_msg(exp); 
     }
  
     return status;
 }
 
-int del_file(FILE_PANEL* file_panel) {
+int del_file(FILE_PANEL* file_panel, bool access) {
     LIST* group = get_group(file_panel);
     LIST_NODE* del_el = group->head;
 
     int status = -1;
 
-    MSG_BOX* msg = init_message_box(5, 30, L"Удаление", L"Удалить файл(ы)?", true);
-    set_color_msg(msg, WARNING_BOX_COLOR);
-    status = show_msg(msg);
+    if(access) {
+        MSG_BOX* msg = init_message_box(5, 30, L"Удаление", L"Удалить файл(ы)?", true);
+        set_color_msg(msg, WARNING_BOX_COLOR);
+        status = show_msg(msg);
+        if(status == -1) {
+            return status;
+        }
+    } else {
+        status = 1;
+    }
 
     while(del_el != NULL) {
 
@@ -994,7 +1001,7 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
                 if(wcscmp(dep->current_directory, file_panel->current_directory) == 0) {
                     set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
                 }
-            }
+            } 
             cpy_el = cpy_el->next; 
     }
 
@@ -1004,7 +1011,9 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
 bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     int status = -1;
     status = copy_files(file_panel, dep, L" ПЕРЕМЕЩЕНИЕ ");
-    status = del_file(file_panel); 
+    if(status == 1) {
+        status = del_file(file_panel, false); 
+    }
     return status;
 }
 
