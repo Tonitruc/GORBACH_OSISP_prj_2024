@@ -25,3 +25,4 @@ int finfo_size_compare(FINFO* first, FINFO* second, int dir);
 int finfo_time_compare(FINFO* first, FINFO* second, int dir);
 void rfind_files(LIST* result, char* start_dir, regex_t regex);
 int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern);
+wchar_t* get_file_name(wchar_t* full_path);

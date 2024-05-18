@@ -92,16 +92,19 @@ FOPR rnm_file(wchar_t* path, wchar_t* new_name) {
     return SUCCESS;
 }
 
-FOPR create_file(wchar_t* full_path) {
-    char* buffer = wchtochs(full_path);
+FOPR crt_file(wchar_t* full_path) {
+    char* fp = wchtochs(full_path);
 
-    FILE *file = fopen(buffer, "w");
-    if(file == NULL) {
-        return false;
+    int status = open(fp, O_CREAT, 0777);
+    if(status == 1) {
+        if(errno == EEXIST) {
+            return NAME_EXIST;
+        }
+        return OPERATION_ERROR;
     }
 
-    free(buffer);
-    return true;
+    free(fp);
+    return SUCCESS;
 }
 
 FOPR move_file(wchar_t* file_path, wchar_t* new_dir) {

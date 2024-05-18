@@ -88,7 +88,7 @@ wchar_t* wtime(time_t time) {
 
 wchar_t* wsubstring(const wchar_t* wstring, int start, int len) {
     size_t wstr_len = wcslen(wstring);
-    if(start <= 0 || start > wstr_len || len < 0 || len + start > wstr_len + 1) {
+    if(start <= 0 || start > wstr_len || len < 0 || len + start > wstr_len + 2) {
         return NULL;
     }
     if(len == 0) {

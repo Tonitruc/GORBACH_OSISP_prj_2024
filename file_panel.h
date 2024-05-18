@@ -105,7 +105,10 @@ void print_current_tab(FILE_PANEL* file_panel);
 MITEM** init_files(LIST* list);
 
 bool create_sym_link(FILE_PANEL* file_panel);
-bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep);
+bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title);
+bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep);
 
 #define get_select_file(file_panel) get_file(file_panel, 0)
 wchar_t* get_file(FILE_PANEL* file_panel, int n);
+
+bool create_file(FILE_PANEL* file_panel);

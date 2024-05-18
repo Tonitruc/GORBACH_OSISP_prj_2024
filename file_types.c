@@ -219,3 +219,13 @@ int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) {
 
     return 1;
 }
+
+wchar_t* get_file_name(wchar_t* full_path) {
+    size_t size = wcslen(full_path);
+    int i = size;
+    while(full_path[i] != '/' && i > 0) {
+        i--;
+    } 
+    wchar_t* file_name = wsubstring(full_path, i + 2, size - i);
+    return file_name;
+}
