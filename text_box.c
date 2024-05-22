@@ -1,8 +1,8 @@
 #include "text_box.h"
-
+//Инициализация формы (род. окно, высота, ширина, расположение, название, сообщение, регулярное выражение, подтверждение ввода)
 TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wchar_t* title, wchar_t* message, const char* pattern, bool verify) {
     int start_x = x, start_y = y;
-    if(x == 0 && y == 0) {
+    if(x == 0 && y == 0) { //По центру экрнаа 
         CENTER_SCR(start_y, start_x);
         start_y -= height / 2;
         start_x -= width / 2;
@@ -30,7 +30,7 @@ TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wc
     keypad(text_box->window, TRUE);
     wcscpy(text_box->title, title);
     wcscpy(text_box->message, message);
-
+    //Создание поля для ввода максимальный размеро 255 символов 
     FIELD **field = (FIELD**)calloc(2, sizeof(FIELD*));
     field[0] = new_field(1, width - 5, 0, 0, 0, 0);
 
@@ -56,13 +56,13 @@ TEXT_BOX* init_text_box(WINDOW* par_win, int height, int width, int y, int x, wc
 
     return text_box;
 }
-
+//Установка цвета формы 
 void set_color_text(TEXT_BOX* tb, short color_pair) {
     tb->color_pair = color_pair;
     wattron(tb->window, COLOR_PAIR(color_pair));
     wbkgd(tb->window, COLOR_PAIR(color_pair));
 }
-
+//Вывод формы 
 void show_text_box(TEXT_BOX* tb) {
     wrefresh(tb->form->sub);
     wrefresh(tb->window);
@@ -78,7 +78,7 @@ void show_text_box(TEXT_BOX* tb) {
         print_menu(tb->menu);
     }
 }
-
+//Получение размера введенного сообщения 
 size_t get_field_len(FIELD* field) {
     char* buffer = field_buffer(field, 0);
     size_t len = strlen(buffer);
@@ -87,14 +87,14 @@ size_t get_field_len(FIELD* field) {
     len = i + 1;
     return len;
 }
-
+//Установка стартового текста в форме 
 void set_start_text(TEXT_BOX* tb, wchar_t* text) {
     size_t size = wcslen(text);
     for(int i = 0; i < size; i++) {
         form_driver_w(tb->form, 0, text[i]);
     }
 }
-
+//Получение данных после ввода 
 wchar_t* get_field_buffer(FORM* form) {
     if(form_driver(form, REQ_VALIDATION) != E_OK) {
         return NULL;
@@ -112,7 +112,7 @@ wchar_t* get_field_buffer(FORM* form) {
     free(buffer);
     return result;
 }
-
+//Сохранение данных ввода и получения их 
 wchar_t* save_input(TEXT_BOX* tb) {
     free(tb->input);
     tb->input = get_field_buffer(tb->form);
@@ -125,24 +125,24 @@ wchar_t* save_input(TEXT_BOX* tb) {
 
     return copy;
 }
-
+//Ввод 
 TEXT_REQ input_text_box(TEXT_BOX* tb) {
     show_text_box(tb);
     int status = -2;
     int key; wint_t sym;
 
     do {
-        curs_set(true);
+        curs_set(true); //Установка курсора в конец 
         form_driver(tb->form, ' ');
         form_driver(tb->form, REQ_DEL_PREV);
-
+        
         if(tb->verify) {
             wnoutrefresh(tb->menu->subwin);
             print_menu(tb->menu);
         }
         wnoutrefresh(tb->window);
         doupdate();
-        key = wget_wch(tb->window, &sym);
+        key = wget_wch(tb->window, &sym); //Если нажат ENTER 
         if((sym == '\n' || sym == KEY_ENTER) && tb->verify) {
             if(tb->menu->select == 0) {                          
                 status = T_ALLOW;
@@ -151,7 +151,7 @@ TEXT_REQ input_text_box(TEXT_BOX* tb) {
             }
             break;
         } 
-        else if (sym == KEY_RIGHT) {
+        else if (sym == KEY_RIGHT) { //Обработка кнопок влево и вправо 
             form_driver(tb->form, REQ_NEXT_CHAR);
             if(tb->verify) {
                 menu_driver(tb->menu, REQ_RIGHT_ITEM);
@@ -163,7 +163,7 @@ TEXT_REQ input_text_box(TEXT_BOX* tb) {
                 menu_driver(tb->menu, REQ_LEFT_ITEM);
             }
         }
-        else if(sym == KEY_MOUSE) {
+        else if(sym == KEY_MOUSE) { // Обработка нажатий мыши
             MEVENT mevent;
             if(getmouse(&mevent) == OK && mevent.bstate &  BUTTON1_RELEASED) {
                 if(wenclose(tb->window, mevent.y, mevent.x) && tb->verify) {
@@ -174,7 +174,7 @@ TEXT_REQ input_text_box(TEXT_BOX* tb) {
                 }
             }
         } 
-        else if(sym == KEY_BACKSPACE) {
+        else if(sym == KEY_BACKSPACE) { //Обработка клавиши backspace 
             form_driver(tb->form, REQ_DEL_PREV);
         } 
         else if(sym == KEY_RESIZE) {
@@ -191,7 +191,7 @@ TEXT_REQ input_text_box(TEXT_BOX* tb) {
     wrefresh(tb->window);
     return status;
 }
-
+//Очистка формы 
 void free_text(TEXT_BOX* tb) {
     if(tb->verify) {
         free_menu(tb->menu);

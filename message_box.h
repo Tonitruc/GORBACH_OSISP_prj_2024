@@ -1,5 +1,7 @@
 #pragma once
 
+//____________ Библиотека для создания формы с сообщением________________
+
 #include <ncurses.h>
 #include <stdbool.h>
 #include "menu.h"
@@ -8,12 +10,12 @@
 #include "winmanip.h"
 #include "file_operation.h"
 
-typedef enum _MSG_REQ {
+typedef enum _MSG_REQ {  //Ответ формы 
     M_ALLOW = 1, 
     M_CANCEL = -1
 } MSG_REQ;
 
-typedef struct _MSG_WIN {
+typedef struct _MSG_WIN {  //Структура для создания формы 
    WINDOW* window;
    wchar_t* title;
    wchar_t* message;

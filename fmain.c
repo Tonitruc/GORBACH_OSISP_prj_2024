@@ -125,6 +125,8 @@ bool resize_app() {
 }
 
 void close_app() {
+	free_wpanel(wpanels[0]);
+	free_wpanel(wpanels[1]);
 
 	free_menu(upper_panel);
 	free_menu(lower_panel);

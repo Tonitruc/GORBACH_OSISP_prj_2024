@@ -1,5 +1,7 @@
 #pragma once
 
+//____________ Библиотека для дополнительных операций над файлами и получении информации о них________________
+
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -16,13 +18,18 @@
 
 #define UNIX_FILE_NAME_PATTERN "^[^/]*$"
 
+//Информация о файлах 
 wchar_t* get_cur_dir();
 LIST* read_dir(char* path);
 FILE_TYPE get_file_type(wchar_t* wfull_path);
 FINFO* init_file_info(wchar_t* full_path, wchar_t* file_name, time_t edit_time, int size_kb, FILE_TYPE file_type);
+wchar_t* get_file_name(wchar_t* full_path);
+
+//Сравнение файлов 
 int finfo_name_compare(FINFO* first, FINFO* second, int dir);
 int finfo_size_compare(FINFO* first, FINFO* second, int dir);
 int finfo_time_compare(FINFO* first, FINFO* second, int dir);
+
+//Поиск файлов 
 void rfind_files(LIST* result, char* start_dir, regex_t regex);
 int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern);
-wchar_t* get_file_name(wchar_t* full_path);

@@ -1,5 +1,5 @@
 #include "winmanip.h"
-
+//Очистка строки в окне 
 void clear_y_str(WINDOW* win, int y, int start_x, int len) {
     int size = start_x + len;
     if(len == 0) {
@@ -12,7 +12,7 @@ void clear_y_str(WINDOW* win, int y, int start_x, int len) {
         mvwaddch(win, y, i, ' ');
     } 
 }
-
+//Включение режима работы с цветами 
 void ext_start_color() {
     start_color();
 
@@ -53,7 +53,7 @@ void ext_start_color() {
     init_pair(MENU_GROUP, COLOR_ORANGE, COLOR_DEEP_BLUE);
     
 }
-
+//Вывод широкой строки с определенным цветом 
 void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair) {
     cchar_t buffer;
     size_t size = wcslen(wstring);
@@ -64,7 +64,7 @@ void mvwaddwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_p
     }
 
 }
-
+//Вывод широкой строки с определенными цветом и размером 
 void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_pair, int n) {
     cchar_t buffer;
     size_t size = n;
@@ -76,6 +76,7 @@ void mvwaddnwstr_color(WINDOW* win, int y, int x, wchar_t* wstring, short color_
 
 }
 
+//Перекраска в определнный цвет строки окна 
 void recolor_str(WINDOW* win, int y, short color_pair) {
     int cols_len = getmaxx(win);
     wchar_t *wstr = (wchar_t *)calloc(cols_len + 1, sizeof(wchar_t));
@@ -88,6 +89,7 @@ void recolor_str(WINDOW* win, int y, short color_pair) {
     }
 }
 
+//Открытие другого приложения 
 int start_app(const char* path, const char* args[]) {
     int status = 1;
     endwin();
@@ -103,6 +105,7 @@ int start_app(const char* path, const char* args[]) {
     return status;
 }
 
+//Создание базового рабочего окна 
 WINDOW* crt_box_win(int height, int width, int y, int x, short color_pair, wchar_t* title) {
     WINDOW* window = newwin(height, width, y, x);
     wattron(window, COLOR_PAIR(color_pair));
@@ -113,7 +116,7 @@ WINDOW* crt_box_win(int height, int width, int y, int x, short color_pair, wchar
 
     return window;
 }
-
+//Создание базового дочеренго 
 WINDOW* crt_derwin(WINDOW* window, int y, int x, short color_pair) {
     WINDOW* subwin = derwin(window, getmaxy(window) - 2, getmaxx(window) - 2, y, x);
     wattron(subwin, COLOR_PAIR(color_pair));

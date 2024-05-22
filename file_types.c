@@ -1,6 +1,6 @@
 #include "file_types.h"
 
-wchar_t* get_cur_dir() {
+wchar_t* get_cur_dir() {  //Получение текущего каталога 
     size_t size = 1024;
     char* buffer = (char*)calloc(size, sizeof(char)); 
     wchar_t* cur_dir = NULL;
@@ -23,8 +23,8 @@ wchar_t* get_cur_dir() {
 
     return cur_dir;
 }
-
-FINFO* init_file_info(wchar_t* full_path, wchar_t* file_name, time_t edit_time, int size_kb, FILE_TYPE file_type) {
+//Создание структуры file_info
+FINFO* init_file_info(wchar_t* full_path, wchar_t* file_name, time_t edit_time, int size_kb, FILE_TYPE file_type) {  
     FINFO* finfo = (FINFO*)calloc(1, sizeof(FINFO));
 
     finfo->edit_time = edit_time;
@@ -42,12 +42,12 @@ FINFO* init_file_info(wchar_t* full_path, wchar_t* file_name, time_t edit_time, 
     return finfo;
 }
 
-FILE_TYPE get_file_type(wchar_t* wfull_path) {
+FILE_TYPE get_file_type(wchar_t* wfull_path) {  //Получение типа файла 
     char* full_path = wchtochs(wfull_path);
     struct stat file_info;
     FILE_TYPE file_type;
 
-    if (lstat(full_path, &file_info) == 0) {
+    if (lstat(full_path, &file_info) == 0) {  //Получение информации о файле
         if (S_ISDIR(file_info.st_mode)) { file_type = DIRECTORY; }
         else if (S_ISLNK(file_info.st_mode)) { 
             if(access(full_path, F_OK) == 0) {
@@ -55,8 +55,8 @@ FILE_TYPE get_file_type(wchar_t* wfull_path) {
             } else {
                 file_type = BAD_SYMBOL_LINK;
             }
-            }
-        else if (wchstrcmp(wfull_path, L".png", 0, 0) 
+            } 
+        else if (wchstrcmp(wfull_path, L".png", 0, 0)  //Парсинг формата файла 
                 || wchstrcmp(wfull_path, L".jpg", 0, 0)) {file_type = IMAGE; } 
         else if (wchstrcmp(wfull_path, L".odt", 0, 0) 
                 || wchstrcmp(wfull_path, L".docx", 0, 0)) {file_type = DOC; } 
@@ -73,7 +73,7 @@ FILE_TYPE get_file_type(wchar_t* wfull_path) {
     return file_type;
 }
 
-LIST* read_dir(char* path) {
+LIST* read_dir(char* path) {  //Чтение каталога и сохранение информации о его файлах 
     DIR *dir;
     struct dirent* d;
     struct stat file_info;
@@ -96,17 +96,19 @@ LIST* read_dir(char* path) {
         char* buffer = (char*)calloc(strlen(d->d_name) + strlen(path) + 2, sizeof(char));
         sprintf(buffer, "%s/%s", path, d->d_name);
 
-        if (stat(buffer, &file_info) == 0) {
+        if (stat(buffer, &file_info) == 0) { //Получение информации о файле 
             edit_time = file_info.st_mtime;
             size_kb = file_info.st_size;
         }
 
         wbuffer = cstowchs(buffer);
-        file_type = get_file_type(wbuffer);
+        file_type = get_file_type(wbuffer); //Сохранение информации о файле в структуре 
         finfo = init_file_info(full_path, file_name, edit_time, size_kb, file_type);
 
         add_last(list, finfo);
         free(buffer);
+        free(file_name);
+        free(full_path);
         free(wbuffer);
     }
 
@@ -114,7 +116,7 @@ LIST* read_dir(char* path) {
     return list;
 }
 
-int finfo_name_compare(FINFO* first, FINFO* second, int dir) {
+int finfo_name_compare(FINFO* first, FINFO* second, int dir) { //Функция для сравнения файлов по имени с каталогами в приоритете 
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
         return dir == 0? -1 : 1;
     } 
@@ -126,7 +128,7 @@ int finfo_name_compare(FINFO* first, FINFO* second, int dir) {
     }
 }
 
-int finfo_size_compare(FINFO* first, FINFO* second, int dir) {
+int finfo_size_compare(FINFO* first, FINFO* second, int dir) { //Функция для сравнения файлов по размеру с каталогами в приоритете 
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
         return dir == 0? -1 : 1;
     } 
@@ -138,7 +140,7 @@ int finfo_size_compare(FINFO* first, FINFO* second, int dir) {
     }
 }
 
-int finfo_time_compare(FINFO* first, FINFO* second, int dir) {
+int finfo_time_compare(FINFO* first, FINFO* second, int dir) { //Функция для сравнения файлов по времени правки с каталогами в приоритете 
     if(first->file_type == DIRECTORY && second->file_type != DIRECTORY) {
         return dir == 0? -1 : 1;
     } 
@@ -150,7 +152,7 @@ int finfo_time_compare(FINFO* first, FINFO* second, int dir) {
     }
 }
 
-void rfind_files(LIST* result, char* start_dir, regex_t regex) {
+void rfind_files(LIST* result, char* start_dir, regex_t regex) {  //Поиск файлов по регулярному выражению 
     DIR *dir;
     struct dirent* d;
     struct stat file_info;
@@ -193,6 +195,8 @@ void rfind_files(LIST* result, char* start_dir, regex_t regex) {
 
         free(wbuffer);
         free(buffer);
+        free(full_path);
+        free(file_name);
     }
 
     if((result->tail) != NULL && result->tail->data->file_type == DIRECTORY) {
@@ -201,8 +205,8 @@ void rfind_files(LIST* result, char* start_dir, regex_t regex) {
     closedir(dir);
 }
 
-int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) {
-    wchar_t* buffer = parse_regex_pattern(wpattern);
+int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) { //Функция для поиска файла по регулярному выражению 
+    wchar_t* buffer = parse_regex_pattern(wpattern); //Функция для упрощенного ввода паттерна для поиска
 
     regex_t reg;
     char* pattern = wchtochs(buffer);
@@ -220,7 +224,7 @@ int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) {
     return 1;
 }
 
-wchar_t* get_file_name(wchar_t* full_path) {
+wchar_t* get_file_name(wchar_t* full_path) { //Парс полного пути для получения имени файла 
     size_t size = wcslen(full_path);
     int i = size;
     while(full_path[i] != '/' && i > 0) {

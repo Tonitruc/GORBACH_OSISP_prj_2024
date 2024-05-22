@@ -1,6 +1,6 @@
 #pragma once
 
-typedef enum _FILE_TYPES {
+typedef enum _FILE_TYPES { //Перечесление для определения типа файлов 
     UNKNOWN_FILE = 0,
     REGULAR_FILE = 1,
     SYMBOL_LINK = 2,

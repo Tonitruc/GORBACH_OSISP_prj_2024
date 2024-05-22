@@ -1,11 +1,13 @@
 #pragma once
 
+//____________ Библиотека для дополнительной настройки рабочего окна________________
+
 #include <ncurses.h>
 #include <wchar.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-
+//Определение цветов 
 #define COLOR_VIOLET 9
 #define COLOR_DEEP_BLUE 10
 #define COLOR_ORANGE 11
@@ -45,7 +47,7 @@
 
 #define U_ARROW_UP L"\u2191"
 #define U_ARROW_DOWN L"\u2193"
-
+//Координаты центра экрана 
 #define CENTER_Y (LINES - 1) / 2
 #define CENTER_X (COLS - 1) / 2
 #define CENTER_SCR(start_y, start_x) start_x = CENTER_X; start_y = CENTER_Y

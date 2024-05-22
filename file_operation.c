@@ -1,7 +1,7 @@
 #include "file_operation.h"
 #include <ncurses.h>
 
-FOPR delete_file(wchar_t* full_path, bool is_dir) {
+FOPR delete_file(wchar_t* full_path, bool is_dir) {   //Функция удаления файла или каталога 
     char* fp = wchtochs(full_path);
     FOPR status = SUCCESS;
 
@@ -9,11 +9,11 @@ FOPR delete_file(wchar_t* full_path, bool is_dir) {
         DIR *dir;
         struct dirent* d;
 
-        dir = opendir(fp);
+        dir = opendir(fp);  //Открытие каталога 
         if(dir == NULL) {
-            return SDIR_NOT_EXIST;
+            return SDIR_NOT_EXIST;  //Если не существует 
         }
-        while((d = readdir(dir)) && status == SUCCESS) {
+        while((d = readdir(dir)) && status == SUCCESS) {   
             if(strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0)
                 continue;
 
@@ -21,10 +21,10 @@ FOPR delete_file(wchar_t* full_path, bool is_dir) {
             sprintf(next_path, "%s/%s", fp, d->d_name);
             wchar_t* wnext_path = cstowchs(next_path);
 
-            if(get_file_type(wnext_path) == DIRECTORY) {
-                status = delete_file(wnext_path, true);
+            if(get_file_type(wnext_path) == DIRECTORY) {  //Если это каталог 
+                status = delete_file(wnext_path, true); //То рекурсивный вызов
             } else {
-                status = delete_file(wnext_path, false);
+                status = delete_file(wnext_path, false);   //Удаление только файла
             }
 
             free(next_path);
@@ -36,8 +36,8 @@ FOPR delete_file(wchar_t* full_path, bool is_dir) {
             status = OPERATION_ERROR;
         }
     }
-    else {
-        if(unlink(fp) == -1) {
+    else {  
+        if(unlink(fp) == -1) {  //Удаление файла
             status = OPERATION_ERROR;
         }
     }
@@ -46,7 +46,7 @@ FOPR delete_file(wchar_t* full_path, bool is_dir) {
     return status;
 }
 
-FOPR create_directory(wchar_t* full_path) {
+FOPR create_directory(wchar_t* full_path) {  //Создание каталога 
     char* buffer = wchtochs(full_path);
 
     int status = mkdir(buffer, 0777);
@@ -61,13 +61,13 @@ FOPR create_directory(wchar_t* full_path) {
     return SUCCESS;
 }
 
-FOPR rnm_file(wchar_t* path, wchar_t* new_name) {
+FOPR rnm_file(wchar_t* path, wchar_t* new_name) {   //Изменение имени файла 
     size_t ps = wcslen(path);
-    while(ps > 0 && path[ps - 1] != '/') {
+    while(ps > 0 && path[ps - 1] != '/') {    //Получение исходного каталога 
         ps--;
     }
 
-    wchar_t* copy_path = (wchar_t*)calloc(ps + 1, sizeof(wchar_t));
+    wchar_t* copy_path = (wchar_t*)calloc(ps + 1, sizeof(wchar_t));  
     wcsncpy(copy_path, path, ps + 1);
     copy_path[ps] = '\0';
     ps += wcslen(new_name); 
@@ -77,7 +77,7 @@ FOPR rnm_file(wchar_t* path, wchar_t* new_name) {
     char* np = wchtochs(new_path);
     char* op = wchtochs(path);
 
-    int status = rename(op, np);
+    int status = rename(op, np);    //Изменение имени файла 
     if(status == -1) {
         if(errno == EEXIST) {
             status = NAME_EXIST;
@@ -92,11 +92,11 @@ FOPR rnm_file(wchar_t* path, wchar_t* new_name) {
     return SUCCESS;
 }
 
-FOPR crt_file(wchar_t* full_path) {
+FOPR crt_file(wchar_t* full_path) {  //Создание файла 
     char* fp = wchtochs(full_path);
 
-    int status = open(fp, O_CREAT, 0777);
-    if(status == 1) {
+    int status = open(fp, O_CREAT, 0777);  //Создать файл
+    if(status == -1) {
         if(errno == EEXIST) {
             return NAME_EXIST;
         }
@@ -104,32 +104,21 @@ FOPR crt_file(wchar_t* full_path) {
     }
 
     free(fp);
+    close(status);
     return SUCCESS;
 }
 
-FOPR move_file(wchar_t* file_path, wchar_t* new_dir) {
-    bool status = false;
-    char* file_path_buffer = wchtochs(file_path);
-    char* new_dir_buffer = wchtochs(new_dir);
-
-    if(rename(file_path_buffer, new_dir_buffer) == 0) {
-        status = true;
-    }
-
-    return status;
-}
-
-FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir, int save_atr, int link) {
+FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir, int save_atr) {  //Копирование файлов 
     char* fp = wchtochs(file_path);
     char* nd = wchtochs(new_dir);
 
     int ind_fp;
-    if((ind_fp = open(fp, O_RDONLY)) == -1) {
+    if((ind_fp = open(fp, O_RDONLY)) == -1) {  //Открытие исходного файла 
         return SDIR_NOT_EXIST;
     }
 
     int ind_nd;
-    if((ind_nd = open(nd, O_CREAT | O_WRONLY | O_TRUNC, 0644)) == -1) {
+    if((ind_nd = open(nd, O_CREAT | O_WRONLY | O_TRUNC, 0777)) == -1) {  //Создание результирующего файла 
         if(errno == EEXIST) {
             return NAME_EXIST;
         }
@@ -139,18 +128,18 @@ FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir, int save_atr, int link) {
     char buffer[100];
     ssize_t bytes_read, bytes_written;
 
-    while ((bytes_read = read(ind_fp, buffer, 100)) > 0) {
+    while ((bytes_read = read(ind_fp, buffer, 100)) > 0) {  //Чтение информации из исходного файла 
         bytes_written = write(ind_nd, buffer, bytes_read);
         if (bytes_written == -1) {
             return OPERATION_ERROR;
         }
     }
 
-    if (bytes_read == -1) {
+    if (bytes_read == -1) {  
         return OPERATION_ERROR;
     }
 
-    if(save_atr == 1) {
+    if(save_atr == 1) {  //Сохранение исходных атрибутов файла 
         struct stat st;
         stat(fp, &st);
         chmod(nd, st.st_mode);
@@ -164,8 +153,8 @@ FOPR cpyfile(wchar_t* file_path, wchar_t* new_dir, int save_atr, int link) {
     return SUCCESS;
 }
 
-FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {
-    wchar_t* path = find_slnk_path(copy_link);
+FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {  //Копирование символьной ссылки
+    wchar_t* path = find_slnk_path(copy_link);   //Получение пути к файлу куда указывает символьная ссылка 
     size_t size = wcslen(copy_link);
     while(size > 0 && copy_link[size - 1] != '/') {
         size--;
@@ -175,9 +164,9 @@ FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {
     wchar_t* next_path = (wchar_t*)calloc(size, sizeof(wchar_t));
     swprintf(next_path, size, L"%ls/%ls", new_dir, name);
 
-    FOPR status = create_slnk(path, next_path);
+    FOPR status = create_slnk(path, next_path);  // Создание символьной ссылки 
 
-    if(save_attr == 1) {
+    if(save_attr == 1) {  //Сохранение исходных атрибутов 
         struct stat st;
         char* copy = wchtochs(copy_link);
         stat(copy, &st);
@@ -194,17 +183,22 @@ FOPR cpyslnk(wchar_t* copy_link, wchar_t* new_dir, int save_attr) {
     return status;
 }
 
-FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
+FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {  //Копироваине каталога 
     char* cd = wchtochs(copy_dir);
     char* nd = wchtochs(new_dir);
 
     DIR *dir;
     struct dirent* d;
     FOPR status = SUCCESS;
-    int st = mkdir(nd, 0777);
+    int st = mkdir(nd, 0777);  //Создание каталога 
     if(st == -1) {
         if(errno == EEXIST) {
             return NAME_EXIST;
+        }
+        if(save_attr == 1) {  //Сохранение исходных атрибутов 
+            struct stat st;
+            stat(cd, &st);
+            chmod(nd, st.st_mode);
         }
     }
 
@@ -212,7 +206,7 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
     if(dir == NULL) {
         return SDIR_NOT_EXIST;
     }
-    while((d = readdir(dir)) && status == SUCCESS) {
+    while((d = readdir(dir)) && status == SUCCESS) {  //Чтение каталога 
         if(strcmp(d->d_name, ".") == 0 || strcmp(d->d_name, "..") == 0)
             continue;
 
@@ -224,14 +218,14 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
         sprintf(new_path, "%s/%s", nd, d->d_name);
         wchar_t* wnew_path = cstowchs(new_path);
 
-        if(get_file_type(wnext_path) == DIRECTORY) {
+        if(get_file_type(wnext_path) == DIRECTORY) {  //Если следующий файл является каталогом 
             status = cpydir(wnext_path, wnew_path, save_attr, link);
         }
-        else if(get_file_type(wnew_path) == SYMBOL_LINK && link == -1) {
+        else if(get_file_type(wnew_path) == SYMBOL_LINK && link == -1) {  //Если символьной ссылкой 
             status = cpyslnk(wnext_path, new_dir, save_attr);
         } 
         else {
-            status = cpyfile(wnext_path, wnew_path, save_attr, link);
+            status = cpyfile(wnext_path, wnew_path, save_attr);  //Любой другой файл 
         }
 
         free(next_path);
@@ -248,11 +242,11 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {
     return status;
 }
 
-FOPR create_slnk(wchar_t* dir, wchar_t* name) {
+FOPR create_slnk(wchar_t* dir, wchar_t* name) {  //Создание символьной ссылки 
     char* d = wchtochs(dir);
     char* n = wchtochs(name);
 
-    int status = symlink(d, n);
+    int status = symlink(d, n);  //Создание ссылки с именем 
     if(status == -1) {
         if(errno == EEXIST) {
             status = NAME_EXIST;
@@ -269,7 +263,7 @@ FOPR create_slnk(wchar_t* dir, wchar_t* name) {
     return status;
 }
 
-wchar_t* find_slnk_path(wchar_t* slnk) {
+wchar_t* find_slnk_path(wchar_t* slnk) {  //Получение пути куда указывает символьная ссылка 
     char* link = wchtochs(slnk);
 
     size_t ps = 1000;

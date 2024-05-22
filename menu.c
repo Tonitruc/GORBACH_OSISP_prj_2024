@@ -4,8 +4,8 @@
 #include <stdarg.h>
 #include "winmanip.h"
 
-//-------------Menu items-------------
-
+//-------------Функции для работы с элементами меню-------------
+//Инициализация элемента меню
 MITEM* init_menu_item(const wchar_t* string) {
     MITEM* item = (MITEM*)calloc(1, sizeof(MITEM));
 
@@ -23,7 +23,7 @@ MITEM* init_menu_item(const wchar_t* string) {
     
     return item;
 }   
-
+//Возврат размера элеметов
 size_t size_items(MITEM** items) {
     size_t count = 0;
     if(items == NULL)
@@ -35,7 +35,7 @@ size_t size_items(MITEM** items) {
 
     return count;
 }
-
+//Проверка вхождения элемента в массив  
 bool mcontains(MENU* menu, const wchar_t* string) {
     for(int i = 0; i < menu->size; i++) {
         if(wcscmp(menu->items[i]->string, string) == 0) {
@@ -45,7 +45,7 @@ bool mcontains(MENU* menu, const wchar_t* string) {
 
     return false;
 }
-
+//Поиск элемента в массиве элементов 
 int find_mitem(MITEM** items, wchar_t* string) {
     size_t size = size_items(items);
 
@@ -57,7 +57,42 @@ int find_mitem(MITEM** items, wchar_t* string) {
 
     return -1;
 }
-//group
+//Добавление элемента в меню 
+void add_item(MENU* menu, MITEM* new_item, int index) {
+    menu->items = (MITEM**)realloc(menu->items, (menu->size + 2) * sizeof(MITEM*));
+
+    for(int i = menu->size; i >= index; i--) {
+        menu->items[i + 1] = menu->items[i];
+    }
+    menu->items[index] = new_item;
+    if(menu->select == index) {
+        menu->iselect = menu->items[index];
+    }
+
+    menu->size++;
+    calc_item_coord(menu);
+}
+//Удаление элемента из меню 
+void delete_item(MENU* menu, int index) {
+    for(int i = index; i < menu->size; i++) {
+        menu->items[i] = menu->items[i + 1];
+    }
+    menu->items = (MITEM**)realloc(menu->items, menu->size * sizeof(MITEM*));
+
+    menu->size--;
+    calc_item_coord(menu);
+}
+//Возврат номера выбранного элемента 
+int mslct(MENU* menu) {
+    if(menu->type == F_HBOX) {
+        return menu->select / menu->columns;
+    } else {
+        return menu->select;
+    }
+}
+
+//-------------Функции для работы с группами элементов в меню-------------
+//Проверка есть ли элементы в группе 
 bool is_clear_group(MENU* menu) {
     bool is_clear = true;
     for(int i = 0; i < menu->size; i++) {
@@ -68,7 +103,7 @@ bool is_clear_group(MENU* menu) {
 
     return is_clear;
 }
-
+//Добавление или удаление из группы элементов 
 void group_act(MENU* menu, int index) {
     if(menu->group[index] == NULL) {
         menu->group[index] = menu->items[index];
@@ -76,13 +111,13 @@ void group_act(MENU* menu, int index) {
         menu->group[index] = NULL;
     }
 }
-
+//Очистка группы 
 void clear_group(MENU* menu) {
     for(int i = 0; i < menu->size; i++) {
         menu->group[i] = NULL;
     }
 }
-
+//Возврат размера группы 
 int group_size(MENU* menu) {
     int size = 0;
     for(int i = 0; i < menu->size; i++) {
@@ -94,8 +129,8 @@ int group_size(MENU* menu) {
     return size;
 }
 
-//-------------Menu Settings-------------
-
+//-------------Настройки меню-------------
+//Установка родительского и дочернего окна для меню 
 bool init_menu_win(MENU* menu, WINDOW* pwin) {
     if(pwin == NULL || menu == NULL)
         return false;
@@ -113,7 +148,7 @@ bool init_menu_sub(MENU* menu, WINDOW* subwin) {
     return true;
 }
 
-//*********For set menu sym****************
+//*********Для установки символов обозначения пунктов меню****************
 
 void set_sprt_sym(MENU* menu, wchar_t sprt_sym) {
     if(sprt_sym == 0) {
@@ -143,7 +178,7 @@ void init_color_slctd_item(MENU* menu, short color_pair) {
     menu->slctd_item_color_pair = color_pair;
 }
 
-//*********For init menu sym****************
+//*********Создание меню****************
 
 MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, SETTINGS_MENU set_menu) {
     MENU* menu = (MENU*)calloc(1, sizeof(MENU));
@@ -186,7 +221,7 @@ MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, S
 
     return menu;     
 }
-
+//Установка функции действия при нажатии на элемет меню
 void set_item_action(MENU* menu, int num, MIACTION action) {
     if(num == 0) {
         menu->items_action = action;
@@ -195,7 +230,7 @@ void set_item_action(MENU* menu, int num, MIACTION action) {
         menu->items[num]->action = action;
     }
 }
-
+//Установка формата вывода меню
 bool init_menu_format(MENU* menu, int row, int column) { 
     if(row <= 0 || column <= 0)
         return false;
@@ -215,7 +250,7 @@ bool init_menu_format(MENU* menu, int row, int column) {
     }
     return true;
 }
-
+//Установка размеров столбцов если они используются 
 void set_columns_size(MENU *menu, double* col_len, ...) {
     if(col_len == 0) {
         menu->columns_size = (double*)calloc(menu->columns + 1, sizeof(double));
@@ -248,7 +283,7 @@ void set_columns_size(MENU *menu, double* col_len, ...) {
     }
 
 }
-
+//Установка имен столбцов если используются 
 void set_column_name(MENU *menu ,const wchar_t* names, ...) {
     menu->column_names = (MITEM**)calloc(menu->columns + 1, sizeof(MITEM*));
 
@@ -268,7 +303,7 @@ void set_column_name(MENU *menu ,const wchar_t* names, ...) {
     menu->max_rows -= 1;
     calc_item_coord(menu);
 }
-
+//Получение текущего размера столбца в пикселях 
 int get_col_size(MENU* menu, int col, int item_num) {
     int size;
     if(menu->set_menu & NON_COL_SIZE) {
@@ -299,7 +334,7 @@ int get_col_size(MENU* menu, int col, int item_num) {
     }
     return size;
 }
-
+//Рассчет коориднатов для вывода элемета 
 void calc_item_coord(MENU* menu) {
     if(menu->size == 0 || menu->items == NULL) {
         return;
@@ -325,7 +360,6 @@ void calc_item_coord(MENU* menu) {
                 menu->items[n_item]->x += (get_col_size(menu, j, n_item) / 2 - menu->items[n_item]->size / 2);
             } 
 
-            //____COLUMN_FORMAT________
             if(menu->columns_size != NULL) {
                 if(menu->columns_size[j] > 1.0) {
                     start_x += get_col_size(menu, j, n_item);
@@ -334,24 +368,20 @@ void calc_item_coord(MENU* menu) {
                 }
             }
 
-            //____SEPARATE_COLUMN______
             if((menu->set_menu & SPRT_INTERMEDIATE && j != 0) 
                 || (menu->set_menu & SPRT_ALL)) {
                 menu->items[n_item]->x += 1;
             }
 
-            //____DESIGNED_ELEMENT_____
             if((menu->set_menu & DESIG_ITEMS && (menu->type == GRID)) 
                 || ((menu->set_menu & DESIG_ITEMS && (menu->type == F_HBOX)) && (n_item % menu->columns == 0))) {
                 menu->items[n_item]->x += 1;
             }
 
-            //____WITHOUT_COLUMN_FORMAT_____
             if(menu->columns_size == NULL) {
                 start_x = menu->items[n_item]->x + menu->items[n_item]->size;
             } 
 
-            //____COLUMN_NAMES_____
             menu->items[n_item]->y = start_y; 
             if(menu->column_names != NULL) {
                 menu->items[n_item]->y += 1;
@@ -365,7 +395,7 @@ void calc_item_coord(MENU* menu) {
         start_y++;
     } 
 }
-
+//Изменение размера меню, необходимо вызвать после изменения размера окна 
 void resize_menu(MENU* menu) {
     menu->max_rows = getmaxy(menu->subwin);
 
@@ -384,8 +414,8 @@ void resize_menu(MENU* menu) {
     calc_item_coord(menu);
 } 
 
-//-------------Print Menu-------------
-
+//-------------Вывод меню -------------
+//Вывод имен столбцов 
 void print_column_names(MENU *menu) {  
     int start_x = 0;
     int size_col = 0;
@@ -417,7 +447,7 @@ void print_column_names(MENU *menu) {
         }
     }
 }
-
+//Вывод пункта меню по номеру 
 void print_menu_point(MENU* menu, int num) {
         int offset = 1;
         short color;
@@ -476,7 +506,7 @@ void print_menu_point(MENU* menu, int num) {
             free(buffer);
         }
 }
-
+//Вывод меню 
 void print_menu(MENU* menu) {
     if(menu == NULL) {
         return;
@@ -500,11 +530,11 @@ void print_menu(MENU* menu) {
     }
 
 }
-
+//Очистка меню 
 void unprint_menu(MENU* menu) {
     werase(menu->subwin);
 }
-
+//Для позиционирования по меню 
 void menu_driver(MENU* menu, REQ_KEY key) {
     int prev_selected_item = menu->select;
     bool need_scroll = false;
@@ -540,7 +570,7 @@ void menu_driver(MENU* menu, REQ_KEY key) {
         change_menu_action(menu, key, prev_selected_item);
     }
 }
-
+//Прокрутка меню 
 void scroll_menu(MENU* menu, REQ_KEY key) {
     scrollok(menu->subwin, true);
     switch (key)
@@ -561,7 +591,7 @@ void scroll_menu(MENU* menu, REQ_KEY key) {
     }
     scrollok(menu->subwin, false);
 }
-
+//Изменение выбранного элемента меню 
 void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item) {
     if(key & REQ_DOWN_ITEM) {
         if(menu->iselect->y == menu->max_rows + 1 && menu->set_menu & USE_COL_NAME) {
@@ -591,7 +621,7 @@ void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item) {
         }
     }
 }
-
+//Смещение координат меню вверх или вниз 
 void offset_y_items(MENU* menu, int y) {
     int n_item = 0;
     bool is_break = false;
@@ -605,7 +635,7 @@ void offset_y_items(MENU* menu, int y) {
         }
     } 
 }
-
+//Поиск нажатого элемента 
 REQ_KEY find_click_item(MENU* menu, MEVENT event) {
     if(!wmouse_trafo(menu->subwin, &event.y, &event.x, FALSE)) {
         return NON_REQ;
@@ -654,15 +684,7 @@ REQ_KEY find_click_item(MENU* menu, MEVENT event) {
     }
     return NON_REQ;
 }
-
-void slctd_item_action(MENU* menu) {
-    if(menu->iselect->action != NULL) {
-        menu->iselect->action();
-    } else if(menu->items_action != NULL) {
-        menu->items_action();
-    }
-}
-
+//Очистка элементов меню 
 void free_item(MITEM* item) {
     free(item->string);
     free(item);
@@ -674,32 +696,7 @@ void free_items(MITEM** items) {
     }
     free(items);
 }
-
-void add_item(MENU* menu, MITEM* new_item, int index) {
-    menu->items = (MITEM**)realloc(menu->items, (menu->size + 2) * sizeof(MITEM*));
-
-    for(int i = menu->size; i >= index; i--) {
-        menu->items[i + 1] = menu->items[i];
-    }
-    menu->items[index] = new_item;
-    if(menu->select == index) {
-        menu->iselect = menu->items[index];
-    }
-
-    menu->size++;
-    calc_item_coord(menu);
-}
-
-void delete_item(MENU* menu, int index) {
-    for(int i = index; i < menu->size; i++) {
-        menu->items[i] = menu->items[i + 1];
-    }
-    menu->items = (MITEM**)realloc(menu->items, menu->size * sizeof(MITEM*));
-
-    menu->size--;
-    calc_item_coord(menu);
-}
-
+//Установка новых элементов в меню 
 void set_new_items(MENU* menu, MITEM** new_items, int select) {
     free_items(menu->items);
 
@@ -713,7 +710,7 @@ void set_new_items(MENU* menu, MITEM** new_items, int select) {
     menu->group = (MITEM**)calloc(menu->size + 1, sizeof(MITEM*));
     calc_item_coord(menu);
 }
-
+//Очистка меню 
 void free_menu(MENU *menu) {
     free_items(menu->items);
     free(menu->columns_size);
@@ -739,12 +736,4 @@ wchar_t* standart_abreviated(wchar_t* wstr, int col_size) {
     abr_wsrt[0] = L'~';
 
     return abr_wsrt;
-}
-
-int mslct(MENU* menu) {
-    if(menu->type == F_HBOX) {
-        return menu->select / menu->columns;
-    } else {
-        return menu->select;
-    }
 }

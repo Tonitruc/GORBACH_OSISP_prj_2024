@@ -1,15 +1,17 @@
 #pragma once
 
+//____________ Библиотека для кнопки состояния________________
+
 #include <wchar.h>
 #include <ncurses.h>
 #include <stdlib.h>
 
-typedef enum _TBUTTON_STATE {
+typedef enum _TBUTTON_STATE {  //Состояние кнопки 
     CHECKED = 1,
     UNCHECKED = -1
 } TBUTTON_STATE;
 
-typedef struct _TOGGLE_BUTTON {
+typedef struct _TOGGLE_BUTTON { //Структура для создания кнопки 
     int x;
     int y;
 

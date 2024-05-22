@@ -1,5 +1,7 @@
 #pragma once
 
+//____________ Библиотека для меню для работы со списком данных________________
+
 #include <ncurses.h>
 #include <wchar.h>
 #include <stdbool.h>
@@ -13,12 +15,12 @@
 #define BASE_POINT_SYM '-'
 #define BASE_SEPARATE_SYM L'\u2502'
 #define U_HLINE L'\u2500'
-
+//Вывод строки реверсивного цвета
 #define mvwprintwr(win, y, x, format_str, ...) wattron(win, A_REVERSE); mvwprintw(win, y, x, format_str, __VA_ARGS__); wattroff(win, A_REVERSE)
 
 #define STNDRT_SETTINGS_GRID(set_grid) set_grid = SPRT_INTERMEDIATE | NON_DESIG_ITEMS | NON_COL_SIZE | NON_COL_NAME | ALLIGMENT_LEFT
 #define STNDRT_SETTINGS_F_HBOX(set_f_hbox) set_f_hbox = SPRT_INTERMEDIATE | DESIG_ITEMS | USER_COL_SIZE | USE_COL_NAME | ALLIGMENT_LEFT
-
+//Указатель на функцию для выполнения действия при нажатии на элемент меню
 typedef void (*MIACTION)();
 
 typedef struct _MITEM {
@@ -31,12 +33,12 @@ typedef struct _MITEM {
     chtype pnt_sym; short pnt_color;
     short slct_color; short sprt_color;
 } MITEM;
-
+//Тип меню
 typedef enum _TYPE_MENU {
     GRID = 0,
     F_HBOX = 1 
 } TYPE_MENU;
-
+//Настройки меню
 typedef enum _SETTINGS_MENU {
     //Separate symbol
     NONE_SPRT = 1,
@@ -60,7 +62,7 @@ typedef enum _DIRECTRION_SORT {
     INCREASING, 
     DECREASING
 } SORT_DIR;
-
+//Функция для сокращения выводимых данных
 typedef wchar_t* (*ABREVIATED)(wchar_t*, int);
 
 typedef struct MENU {
@@ -96,8 +98,7 @@ typedef struct MENU {
     MITEM** group;
     short group_color;
 } MENU;
-
-
+//Ответ после работы функций позиционирования в меню
 typedef enum _REQ_KEY {
     NON_REQ = 0,
     REQ_DOWN_ITEM = 1,
@@ -123,19 +124,18 @@ typedef enum _REQ_KEY {
     set_columns_size(menu, (double*)2, 0.5, 0.5); \
     menu; })
 
-//-------------Menu items-------------
+//-------------Элементы меню-------------
 
 MITEM* init_menu_item(const wchar_t* string);
 size_t size_items(MITEM** items);
 int find_mitem(MITEM** items, wchar_t* string);
 
-//-------------Menu Settings-------------
+//-------------Настройка меню-------------
 
-//new
 MENU* init_menu(MITEM** items, WINDOW* p_win, WINDOW* sub_win, TYPE_MENU type, SETTINGS_MENU set_menu);
-bool init_menu_win(MENU* menu, WINDOW* pwin); //set parent win for menu
-bool init_menu_sub(MENU* menu, WINDOW* subwin); //Set subwin for menu
-bool init_menu_format(MENU* menu, int row, int column); //Amount of row and column
+bool init_menu_win(MENU* menu, WINDOW* pwin); 
+bool init_menu_sub(MENU* menu, WINDOW* subwin); 
+bool init_menu_format(MENU* menu, int row, int column); 
 void set_columns_size(MENU *menu, double* col_len, ...);
 void set_sprt_sym(MENU* menu, wchar_t sprt_sym);
 void set_slct_sym(MENU* menu, chtype slct_sym);
@@ -151,25 +151,25 @@ void add_item(MENU* menu, MITEM* new_item, int index);
 void delete_item(MENU* menu, int index);
 void free_menu(MENU *menu);
 
-//-------------Print Menu-------------
-
+//-------------Вывод меню-------------
 void print_menu(MENU* menu);
 void unprint_menu(MENU* menu);
 void menu_driver(MENU* menu, REQ_KEY key);
 void resize_menu(MENU* menu);
 void offset_y_items(MENU* menu, int y);
-void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item);
 
-//Mouse events 
+//Обработка нажатий  
 REQ_KEY find_click_item(MENU* menu, MEVENT event);
 void slctd_item_action(MENU* menu);
 int clicked_column(MENU* menu, MEVENT event);
+void change_menu_action(MENU* menu, REQ_KEY key, int prev_selected_item);
 
-//sort_items
-wchar_t* standart_abreviated(wchar_t* item, int col_size);
+//Работы с группой элементов 
 int mslct(MENU* menu);
 bool mcontains(MENU* menu, const wchar_t* string);
 bool is_clear_group(MENU* menu);
 int* get_group_pnt(MENU* menu);
 int group_size(MENU* menu);
 void clear_group(MENU* menu);
+
+wchar_t* standart_abreviated(wchar_t* item, int col_size);

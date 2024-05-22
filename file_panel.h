@@ -1,5 +1,7 @@
 #pragma once
 
+//____________ Библиотека для взаимодействия с файловой системой________________
+
 #include <stdbool.h>
 #include <ncurses.h>
 #include <stdio.h>
@@ -20,7 +22,7 @@
 
 #define COLS_PERCENT 0.50
 #define ROWS_PERCENT 0.10
-
+//Размеры и позиция главного рабочего окна 
 #define FILE_PANEL_SIZE(height, width) height = (LINES - 2); width = (COLS / 2)
 #define PANEL_START_POS(starty, startx, num) starty = 1; startx = (0 + num * COLS / 2)
 
@@ -54,8 +56,7 @@ typedef struct _TAB {
     wchar_t* directory;
     int select;
 } TAB;
-
-
+//Структура для создания главного рабочего окна с файлами 
 typedef struct _FILE_PANEL {
     WINDOW* panel;
     wchar_t* current_directory;
@@ -74,41 +75,43 @@ typedef struct _FILE_PANEL {
     bool is_sort;
 } FILE_PANEL;
 
+//Работа с окном 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num);
 bool resize_file_panel(FILE_PANEL* file_panel, int num);
 void refresh_file_panel(FILE_PANEL* file_panel, short color);
 MITEM** load_dir(FILE_PANEL* file_panel);
 bool init_file_menu(FILE_PANEL* file_panel, MITEM** items);
 void print_selected_file_space(FILE_PANEL* file_panel);
+MITEM** init_files(LIST* list);
+
+//Обработка нажатий 
 bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent);
 bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep);
+
+//Вывод текущего файла и каталога 
 void print_current_file(FILE_PANEL *file_panel, bool with_clear);
 void print_tab_space(FILE_PANEL *file_panel);
 void print_current_directory(FILE_PANEL *file_panel, bool with_clear);
 
-//file CRUD
+//Операции с файлами 
 int del_file(FILE_PANEL* file_panel, bool access);
 int create_dir(FILE_PANEL* file_panel);
 bool correction_file(FILE_PANEL* file_panel);
 bool open_file(FILE_PANEL* file_panel);
 int rename_dir(FILE_PANEL* file_panel);
+bool create_sym_link(FILE_PANEL* file_panel);
+bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title);
+bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep);
+bool create_file(FILE_PANEL* file_panel);
 
-//free memory
+//Очистка памяти 
 void free_file_panel(FILE_PANEL* file_panel);
 
-//tabs
+//Вкладки 
 bool delete_tab(FILE_PANEL* file_panel);
 bool save_tab(FILE_PANEL* file_panel);
 void load_tab(FILE_PANEL* file_panel, int prev_tab_num);
 void print_current_tab(FILE_PANEL* file_panel);
 
-MITEM** init_files(LIST* list);
-
-bool create_sym_link(FILE_PANEL* file_panel);
-bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title);
-bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep);
-
 #define get_select_file(file_panel) get_file(file_panel, 0)
 wchar_t* get_file(FILE_PANEL* file_panel, int n);
-
-bool create_file(FILE_PANEL* file_panel);

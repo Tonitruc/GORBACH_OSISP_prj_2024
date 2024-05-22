@@ -1,28 +1,30 @@
 #pragma once
 
+//____________ Библиотека для создания базовой рабочей панели________________
+
 #include "file_panel.h"
 #include "fcntl.h"
 #include <pwd.h>
 #include <grp.h>
 
-typedef enum _PANEL_MODE {
+typedef enum _PANEL_MODE { //Режимы работы панели 
 	FILE_LIST = 0,
 	FILE_VIEW = 1,
     FILE_INFO = 2
 } PANEL_MODE;
 
-typedef struct _FILE_SCROLL {
+typedef struct _FILE_SCROLL { //Структура для запоминания позиции в файле 
     long beg_pos;
-    int file;
+    FILE* file;
     bool eof;
 } FSCROLL;
 
-typedef struct _WORK_PANEL {
+typedef struct _WORK_PANEL { //Рабоая панель 
     FSCROLL scroll;
     FILE_PANEL* fpanel;
     PANEL_MODE mode;
 
-    struct _WORK_PANEL* dep;
+    struct _WORK_PANEL* dep; //Зависимая рабоая панель 
     bool is_select;
 } WPANEL;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+//____________ Библиотека для работы со списком данных________________
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>

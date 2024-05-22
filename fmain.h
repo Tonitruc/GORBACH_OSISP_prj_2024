@@ -17,13 +17,13 @@
 
 #define AMOUNT_OF_FILE_PANEL 2
 
-//File panels
+//Главные рабочие панли
 extern WPANEL* wpanels[2];
-extern WPANEL* wpanel;
+extern WPANEL* wpanel; //Текущая панель 
 
 //Menus for manage files
 #define AMOUNT_TOP_PANEL_ITEMS 3
-extern MENU* upper_panel;
+extern MENU* upper_panel;  //Верхняя панель управления 
 extern WINDOW* setting_panel_window;
 
 extern MENU* setting_panel_menu;

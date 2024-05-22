@@ -15,6 +15,7 @@
         "fcntl.h": "c",
         "stat.h": "c",
         "list.h": "c",
-        "toggle_button.h": "c"
+        "toggle_button.h": "c",
+        "file_operation.h": "c"
     }
 }

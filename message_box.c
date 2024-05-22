@@ -1,8 +1,8 @@
 #include "message_box.h"
-
+//Инициализация формы (высота, ширина, название, сообщение, необходимость подтверждения)
 MSG_BOX* init_message_box(int height, int width, wchar_t* title, wchar_t* message, bool is_verified) {
     int start_x, start_y;
-    CENTER_SCR(start_x, start_y);
+    CENTER_SCR(start_x, start_y); //Расположение по центру экрана 
     start_x -= height / 2;
     start_y -= width / 2;
 
@@ -24,15 +24,15 @@ MSG_BOX* init_message_box(int height, int width, wchar_t* title, wchar_t* messag
     return message_box;
 }
 
-void set_color_msg(MSG_BOX* msg_box, short color_pair) {
+void set_color_msg(MSG_BOX* msg_box, short color_pair) {  //Установка цвета сообщения 
     msg_box->color_pair = color_pair;
     wattron(msg_box->window, COLOR_PAIR(color_pair));
     wbkgd(msg_box->window, COLOR_PAIR(color_pair));
 }
 
-MSG_REQ show_msg(MSG_BOX* msg) {
+MSG_REQ show_msg(MSG_BOX* msg) {  //Вывод сообщения 
     MENU* menu = NULL;
-    if(msg->is_verified) {
+    if(msg->is_verified) { //Созднаия пунктов меню для подтвержединя 
         WINDOW* win = derwin(msg->window, 1, msg->width - 4, msg->height - 1, 2);
         MITEM **items = (MITEM**)calloc(3, sizeof(MITEM));
         items[0] = init_menu_item(L"[ ОК ]");
@@ -42,24 +42,25 @@ MSG_REQ show_msg(MSG_BOX* msg) {
         init_menu_format(menu, 1, 2);
         menu->slctd_item_color_pair = SLCTD_EXCEPTION_COLOR; 
         set_columns_size(menu, (double*)2, 0.5, 0.5);
-    } else {
-        mvwprintw(msg->window, getmaxy(msg->window) - 1, 1, " Нажмите любую клавишу ");
     }
 
-    int status;
+    int status = M_ALLOW;
     int key;
     mvwaddwstr(msg->window, getmaxy(msg->window) / 2, 2, msg->message);
     box(msg->window, 0, 0);
+    if(!msg->is_verified) {
+        mvwprintw(msg->window, getmaxy(msg->window) - 1, 1, " Нажмите любую клавишу... ");
+    }
     mvwaddwstr(msg->window, 0, (msg->width - 2) / 2 - wcslen(msg->title) / 2, msg->title);
-
-    do {
+ 
+    do {  //Обработчик нажатий сообщения 
         print_menu(menu);
         wrefresh(msg->window);
         if(msg->is_verified) {
             wrefresh(menu->subwin);
         }
         key = wgetch(msg->window);
-        if(key == '\n' && msg->is_verified) {
+        if(key == '\n' && msg->is_verified) {  //Если был нажат Enter 
             if(menu->select == 0) {
                 status = M_ALLOW;
             } else {
@@ -67,13 +68,13 @@ MSG_REQ show_msg(MSG_BOX* msg) {
             }
             break;
         } 
-        else if (key == KEY_RIGHT && msg->is_verified) {
+        else if (key == KEY_RIGHT && msg->is_verified) { //Обработка клавиш влево вправо 
             menu_driver(menu, REQ_RIGHT_ITEM);
         } 
         else if (key == KEY_LEFT && msg->is_verified) {
             menu_driver(menu, REQ_LEFT_ITEM);
         }
-        else if(key == KEY_MOUSE && msg->is_verified) {
+        else if(key == KEY_MOUSE && msg->is_verified) {  //Обработка нажатий мыши
             MEVENT mevent;
             if(getmouse(&mevent) == OK) {
                 find_click_item(menu, mevent);
@@ -92,7 +93,7 @@ MSG_REQ show_msg(MSG_BOX* msg) {
     return status;
 }
 
-void free_msg(MSG_BOX* msg) {
+void free_msg(MSG_BOX* msg) { //Очистка формы 
     free(msg->title);
     free(msg->message);
 

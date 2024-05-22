@@ -3,8 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 
-//Init file panel
-
+//Инициализация меню для работы с файлами 
 bool init_file_menu(FILE_PANEL* file_panel, MITEM** items) {
     int row, column;
     getmaxyx(file_panel->panel, row, column);
@@ -25,7 +24,7 @@ bool init_file_menu(FILE_PANEL* file_panel, MITEM** items) {
 
     return true;
 }
-
+//Инициализация элементов для работы с вкладками ы
 void init_tabs_list(FILE_PANEL* file_panel, int num) {
 	MITEM** tabs_panel_items = (MITEM**)calloc(4, sizeof(MITEM*));
     tabs_panel_items[0] = init_menu_item(L"[ ^ ]");
@@ -44,8 +43,8 @@ void init_tabs_list(FILE_PANEL* file_panel, int num) {
 
     file_panel->amount_tabs = 0;
 
-    int start_x, start_y;
-    PANEL_START_POS(start_y, start_x, num);
+    int start_x;
+    PANEL_START_POS(start_x, start_x, num);
     WINDOW* tab_win = crt_box_win(12, 40, 5, start_x + 2, SLCTD_EXCEPTION_COLOR, L"");
     WINDOW* subwin = wbrt_derwin(tab_win, SLCTD_EXCEPTION_COLOR);
 
@@ -58,6 +57,7 @@ void init_tabs_list(FILE_PANEL* file_panel, int num) {
     print_menu(file_panel->tabs_menu);
 }
 
+//Инициализация файловой панели 
 FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     FILE_PANEL* file_panel = (FILE_PANEL*)calloc(1, sizeof(FILE_PANEL));
     file_panel->files_info = init_list();
@@ -82,8 +82,7 @@ FILE_PANEL* init_file_panel(WINDOW* parent_window, int num) {
     return file_panel;
 }
 
-//update file panel
-
+//Обновление файловой панели 
 void refresh_file_panel(FILE_PANEL* file_panel, short color) {
     werase(file_panel->panel);
     wattron(file_panel->panel, COLOR_PAIR(color));
@@ -99,7 +98,7 @@ void refresh_file_panel(FILE_PANEL* file_panel, short color) {
     print_menu(file_panel->tabs_panel);
     wrefresh(file_panel->panel);
 }
-
+//Изменение размера файловой панели 
 bool resize_file_panel(FILE_PANEL* file_panel, int num)  {
     int height, width, starty, startx;
     PANEL_START_POS(starty, startx, num);
@@ -128,7 +127,7 @@ bool resize_file_panel(FILE_PANEL* file_panel, int num)  {
 
     return true;
 }
-
+//Вывод текущего файла 
 void print_selected_file_space(FILE_PANEL* file_panel) {
     int height, width;
     SELECTED_FILE_SPACE_SIZE(file_panel->panel, height, width);
@@ -141,7 +140,7 @@ void print_selected_file_space(FILE_PANEL* file_panel) {
 
     print_current_file(file_panel, false);
 }
-
+//Вывод текущей вкладки 
 void print_current_tab(FILE_PANEL* file_panel) {
     unprint_menu(file_panel->tabs_panel);
     free(file_panel->tabs_panel->items[0]);
@@ -155,7 +154,7 @@ void print_current_tab(FILE_PANEL* file_panel) {
     calc_item_coord(file_panel->tabs_panel);
     print_menu(file_panel->tabs_panel);
 }
-
+//Вывод текущего файла 
 void print_current_file(FILE_PANEL *file_panel, bool with_clear) {
     int y, x;
     CURRENT_FILE_POS(file_panel->panel, y, x);
@@ -193,7 +192,7 @@ void print_current_file(FILE_PANEL *file_panel, bool with_clear) {
         free(buffer);
     }
 }
-
+//Вывод текущей вкладки 
 void print_tab_space(FILE_PANEL *file_panel) {
     int height, width;
     TAB_SPACE_SIZE(file_panel->panel, height, width);
@@ -206,7 +205,7 @@ void print_tab_space(FILE_PANEL *file_panel) {
 
     print_current_directory(file_panel, false);
 }
-
+//Вывод текущего каталога 
 void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
     int row, column;
     TAB_SPACE_POS(row, column);
@@ -229,8 +228,7 @@ void print_current_directory(FILE_PANEL *file_panel, bool with_clear) {
     }
 }
 
-//help function
-
+//Вспомогательные функции 
 wchar_t* get_file(FILE_PANEL* file_panel, int n) {
     size_t cur_dir_size = wcslen(file_panel->current_directory);
     wchar_t* cur_file;
@@ -270,6 +268,7 @@ wchar_t* get_file(FILE_PANEL* file_panel, int n) {
     return cur_file;
 }
 
+//Работа с группами файлов 
 LIST* get_group(FILE_PANEL* file_panel) {
     LIST* group = init_list();
 
@@ -287,6 +286,7 @@ LIST* get_group(FILE_PANEL* file_panel) {
     return group;
 }
 
+//Получение файлов текущего каталога 
 MITEM** init_files(LIST* list) {
     MITEM **items = (MITEM**)calloc(list->size * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
 
@@ -323,8 +323,7 @@ MITEM** init_files(LIST* list) {
     return items;
 }
 
-//view directory fucnitons
-
+//Загрзука каталога 
 MITEM** load_dir(FILE_PANEL* file_panel) {
     char* cur_dir = wchtochs(file_panel->current_directory);
     LIST* list = read_dir(cur_dir);
@@ -349,12 +348,10 @@ MITEM** load_dir(FILE_PANEL* file_panel) {
     free(cur_dir);
     return list_files;
 }
-
+//Изменение каталога 
 bool change_dir(FILE_PANEL* file_panel) {
     wchar_t* new_dir = get_select_file(file_panel);
     wchar_t* old_dir = get_file_name(file_panel->current_directory);
-    mvprintw(0, 0, "%ls ", old_dir);
-    refresh();
 
     free_list(file_panel->files_info);
     file_panel->current_directory = new_dir;
@@ -375,7 +372,7 @@ bool change_dir(FILE_PANEL* file_panel) {
     free(old_dir);
     return true;
 }
-
+//Открытие файла 
 bool open_file(FILE_PANEL* file_panel) {
     wchar_t* cur_file = get_select_file(file_panel);
     FILE_TYPE file_type = get_file_type(cur_file);
@@ -401,8 +398,8 @@ bool open_file(FILE_PANEL* file_panel) {
     return true;
 }
 
-//functions for work with tabs
-
+//Работа с вкладками 
+//Обработчик для выбора вкладки 
 int chooce_tab(FILE_PANEL* file_panel) {
     overlay(file_panel->tabs_menu->parwin, file_panel->panel);
     touchwin(file_panel->tabs_menu->parwin);
@@ -446,7 +443,7 @@ int chooce_tab(FILE_PANEL* file_panel) {
 
     return choice;
 }
-
+//Сохранение вкладки 
 bool save_tab(FILE_PANEL* file_panel) {
     if(file_panel->amount_tabs == MAX_TABS) {
         MSG_BOX* msg = init_message_box(10, 30, L"Ошибка", L"Максимум 10 влкадок", false);
@@ -475,10 +472,11 @@ bool save_tab(FILE_PANEL* file_panel) {
 
 		free(buffer);
 	}
+    free_text(tabs_name);
 
 	return true;
 }
-
+//Удалеине вкладки 
 bool delete_tab(FILE_PANEL* file_panel) {
     unprint_menu(file_panel->tabs_menu);
     if(file_panel->amount_tabs == 0) {
@@ -499,7 +497,7 @@ bool delete_tab(FILE_PANEL* file_panel) {
 
 	return true;
 }
-
+//Загрузка вкладки 
 void load_tab(FILE_PANEL* file_panel, int prev_tab_num) {
     if(prev_tab_num != -1) {
         file_panel->tabs[prev_tab_num].directory = file_panel->current_directory;
@@ -521,8 +519,7 @@ void load_tab(FILE_PANEL* file_panel, int prev_tab_num) {
     print_menu(file_panel->file_menu);
 }
 
-//key and moust handlers
-
+//Обработчики клавиатуры и мыши 
 bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
     switch (mevent.bstate)
     {
@@ -589,7 +586,7 @@ bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
 
     return true;
 }
-
+//Обработчик клавиатуры 
 bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
     switch (key)
     {
@@ -672,29 +669,52 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
     return true;
 }
 
-//file CRUD
-
-FOPR file_operation_handler(FOPR status) {
+//Операции с файлами 
+//Обработчик ответа после выполнения операций над файлами 
+FOPR file_operation_handler(FOPR status, bool atomic, wchar_t* file_name) {
+    MSG_BOX* exp;
     if(status == OPERATION_ERROR) {
-        MSG_BOX* exp = init_message_box(7, 40, L" ОШИБКА ", L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично. Пропустить?", true);
-        show_msg(exp); 
+        if(atomic) {
+            exp = init_message_box(7, 45, file_name, L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично. Пропустить?", true);
+        } else {
+            exp = init_message_box(7, 40, L" ОШИБКА ", L"Ошибка при выполнении операции.\n  Операция была отменена \n  или выполнена частично.", false);
+        }
+        status = show_msg(exp); 
     } else if(status == SDIR_NOT_EXIST) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Исходный каталог не существует. Пропустить?", true);
-        show_msg(exp); 
+        if(atomic) {
+            exp = init_message_box(5, 45, file_name, L"Исходный каталог не существует. Пропустить?", true);
+        } else {
+            exp = init_message_box(5, 30, L" ОШИБКА ", L"Исходный каталог не существует.", false);
+        }
+        status = show_msg(exp); 
     } else if(status == RDIR_NOT_EXITS) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Результирующий каталог не существует. Пропустить?", true);
-        show_msg(exp); 
+        if(atomic) {
+            exp = init_message_box(5, 45, file_name, L"Результирующий каталог не существует. Пропустить?", true);
+        } else {
+            exp = init_message_box(5, 30, L" ОШИБКА ", L"Результирующий каталог не существует.", false);
+        }
+        status = show_msg(exp); 
     } else if(status == NAME_EXIST) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя уже занято. Пропустить?", true);
-        show_msg(exp); 
+        if(atomic) {
+            exp = init_message_box(5, 45, file_name, L"Имя уже занято. Пропустить?", true);
+        } else {
+            exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя уже занято.", false);
+        }
+        status = show_msg(exp); 
     } else if(status == EMPTY_NAME) {
-        MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Пустое имя. Пропустить?", true);
-        show_msg(exp); 
+        if(atomic) {
+            exp = init_message_box(5, 45, file_name, L"Пустое имя. Пропустить?", true);
+        } else {
+            exp = init_message_box(5, 30, L" ОШИБКА ", L"Пустое имя.", false);
+        }
+        status = show_msg(exp); 
     }
- 
+    
+    mvprintw(1, 0, "%d", status);
+    refresh();
     return status;
 }
-
+//Удаление файла 
 int del_file(FILE_PANEL* file_panel, bool access) {
     LIST* group = get_group(file_panel);
     LIST_NODE* del_el = group->head;
@@ -721,26 +741,31 @@ int del_file(FILE_PANEL* file_panel, bool access) {
         if(status != -1) {
             bool is_dir = get_file_type(del_file) == DIRECTORY;
             status = delete_file(del_file, is_dir);
-            if(file_operation_handler(status)) {
+            if(file_operation_handler(status, true, del_el->data->file_name)) {
                 set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+            } else {
+                free(del_file);
+                break;
             }
         }
         del_el = del_el->next;
         free(del_file);
     }
-
+    free(group);
+    free(del_el);
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
 
     return status;
 } 
-
+//Создание каталога 
 int create_dir(FILE_PANEL* file_panel) {
     int status = -1;
     TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L" СОЗДАНИЕ ", L"Ведите имя каталога", UNIX_FILE_NAME_PATTERN, true);
     wchar_t* name = NULL;
     status = input_text_box(inp_file_name);
     if(status == -1) {
+        free_text(inp_file_name);
         return status;
     } 
     else {
@@ -748,16 +773,17 @@ int create_dir(FILE_PANEL* file_panel) {
         if(name == NULL) {
             MSG_BOX* exp = init_message_box(5, 30, L" ОШИБКА ", L"Имя не должно содержать /", false);
             show_msg(exp); 
+            free_text(inp_file_name);
             return -1;
         }
         if(wcslen(name) == 0) {
-            file_operation_handler(EMPTY_NAME); 
+            file_operation_handler(EMPTY_NAME, false, NULL); 
         } else {
             size_t size = wcslen(name) + wcslen(file_panel->current_directory) + 2;
             wchar_t* full_path = (wchar_t*)calloc(size, sizeof(wchar_t));
             swprintf(full_path, size, L"%ls/%ls", file_panel->current_directory, name);
             status = create_directory(full_path);
-            if(file_operation_handler(status)) {
+            if(file_operation_handler(status, false, NULL)) {
             set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
         }
         free(full_path);    
@@ -765,12 +791,13 @@ int create_dir(FILE_PANEL* file_panel) {
         free(name);
     }
 
+    free_text(inp_file_name);
     unprint_menu(file_panel->file_menu);
     print_menu(file_panel->file_menu);
 
     return status;
 }
-
+//Редактирование файла 
 bool correction_file(FILE_PANEL* file_panel) {
     wchar_t* current_file = get_select_file(file_panel);
     FILE_TYPE file_type = get_file_type(current_file);
@@ -785,7 +812,7 @@ bool correction_file(FILE_PANEL* file_panel) {
 
     return true;
 }
-
+//Изменнеие имени файла 
 int rename_dir(FILE_PANEL* file_panel) {
     int status = -1;
     TEXT_BOX* inp_file_name = init_text_box(stdscr, 7, 40, 0, 0, L" ПЕРЕИМЕНОВАНИЕ ", L"Ведите имя файла", UNIX_FILE_NAME_PATTERN, true);
@@ -801,11 +828,11 @@ int rename_dir(FILE_PANEL* file_panel) {
             return -1;            
         }
         if(wcslen(new_name) == 0) {
-            file_operation_handler(EMPTY_NAME);         
+            file_operation_handler(EMPTY_NAME, false, NULL);         
         } else {
             wchar_t* curr = get_select_file(file_panel);
             status = rnm_file(curr, new_name);
-            if(file_operation_handler(status)) {
+            if(file_operation_handler(status, false, NULL)) {
                 set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
             }
             free(curr);
@@ -818,7 +845,7 @@ int rename_dir(FILE_PANEL* file_panel) {
 
     return status;
 } 
-
+//Диалоговое окно для настройки операций копирования и перемещения 
 int dialog_win_cm(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title, int *attr, int *lnk, int* sbdir, wchar_t** wto) {
     WINDOW* window = cwbcrt_win(12, 60, TOP_PANEL_COLOR, title);
 
@@ -889,10 +916,12 @@ int dialog_win_cm(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title, int *
             }
         }
     }
-    
+    free_menu(menu);
+    delwin(window);
+    free_text(to);
     return status;
 }
-
+//Создание символьной ссылки 
 bool create_sym_link(FILE_PANEL* file_panel) {
     WINDOW* window = cwbcrt_win(9, 80, TOP_PANEL_COLOR, L" СОЗДАНИЕ ");
 
@@ -953,12 +982,14 @@ bool create_sym_link(FILE_PANEL* file_panel) {
             }
         }
     }
+    free_text(from);
+    free_text(to);
     free(from_str);
     free(to_str);
     
     return status;
 }
-
+//Копирование файлов 
 bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
     LIST* group = get_group(file_panel);
     wchar_t* new_dir;
@@ -971,7 +1002,7 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
     if(sub_dir == 1) {
         status = create_directory(new_dir);
         if(status != SUCCESS) {
-            return file_operation_handler(status);
+            return file_operation_handler(status, false, NULL);
         }
     }
 
@@ -991,23 +1022,31 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
             } 
             else {
                 if(sub_dir == 1 || !mcontains(dep->file_menu, cpy_el->data->file_name)) {
-                    status = cpyfile(copy_file, new_file, save_attr, link);
+                    status = cpyfile(copy_file, new_file, save_attr);
                 } else {
                     status = NAME_EXIST;
                 }
             }
-            if(file_operation_handler(status)) {
+            if(file_operation_handler(status, true, cpy_el->data->file_name) == 1) {
                 set_new_items(dep->file_menu, load_dir(dep), 0);
                 if(wcscmp(dep->current_directory, file_panel->current_directory) == 0) {
                     set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
                 }
-            } 
+            } else {
+                free(copy_file);
+                free(new_file);
+                break;
+            }
             cpy_el = cpy_el->next; 
+            free(copy_file);
+            free(new_file);
     }
+    free(group);
+    free(cpy_el);
 
     return true;
 }
-
+//Перемещеине файлов 
 bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     int status = -1;
     status = copy_files(file_panel, dep, L" ПЕРЕМЕЩЕНИЕ ");
@@ -1016,7 +1055,7 @@ bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     }
     return status;
 }
-
+//Создание файла 
 bool create_file(FILE_PANEL* file_panel) {
     TEXT_BOX* inp_name = init_text_box(stdscr, 7, 40, 0, 0, L" СОЗДАНИЕ ", L"Имя файла:", NULL, true);
     int status = input_text_box(inp_name);
@@ -1027,14 +1066,24 @@ bool create_file(FILE_PANEL* file_panel) {
         wchar_t* new_file = (wchar_t*)calloc(size, sizeof(wchar_t));
         swprintf(new_file, size, L"%ls/%ls", file_panel->current_directory, name);
         status = crt_file(new_file);
-        if(file_operation_handler(status)) {
+        if(file_operation_handler(status, false, NULL)) {
             set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
         }
-    } else return false;
+        status = true;
+    } else {
+        status = false;
+    }
 
-    return true;
+    free_text(inp_name);
+    return status;
 }
 
 void free_file_panel(FILE_PANEL* file_panel) {
-
+    free_menu(file_panel->file_menu);
+    free_list(file_panel->files_info);
+    free(file_panel->current_directory);
+    delwin(file_panel->menu_sub_win);
+    delwin(file_panel->panel);
+    free(file_panel->tabs_menu);
+    free(file_panel->tabs_panel);
 } 

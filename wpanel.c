@@ -1,18 +1,18 @@
 #include "wpanel.h"
-
+//Инициализация панели 
 WPANEL* init_wpanel(FILE_PANEL* file_panel, bool is_select) {
     WPANEL* wpanel = (WPANEL*)calloc(1, sizeof(WPANEL));
     wpanel->fpanel = file_panel;
     wpanel->mode = FILE_LIST;
     wpanel->dep = NULL;
     wpanel->scroll.beg_pos = 0;
-    wpanel->scroll.file = -1;
+    wpanel->scroll.file = NULL;
     wpanel->scroll.eof = false;
     wpanel->is_select = is_select;
 
     return wpanel;
 }
-
+//Обновление панели 
 void refersh_wpanel(WPANEL* wpanel) {
     short color = wpanel->is_select? MENU_WHITE : MENU_GRAY;
     if(wpanel->mode == FILE_LIST) {
@@ -27,7 +27,7 @@ void refersh_wpanel(WPANEL* wpanel) {
         wrefresh(wpanel->fpanel->panel);
     }
 }
-
+//Смена рабочей панели на зависимую 
 WPANEL* change_wpanel(WPANEL* wpanel) {
     if(wpanel->dep->mode == FILE_LIST) {
         char* buffer = wchtochs(wpanel->dep->fpanel->current_directory);
@@ -39,7 +39,7 @@ WPANEL* change_wpanel(WPANEL* wpanel) {
     return wpanel->dep;
 
 }
-
+//Изменение размера панели 
 void resize_wpanel(WPANEL* wpanel, int num) {
     if(wpanel->mode == FILE_LIST) {
         resize_file_panel(wpanel->fpanel, num);
@@ -52,7 +52,7 @@ void resize_wpanel(WPANEL* wpanel, int num) {
         resize_file_panel(wpanel->fpanel, num);
     }
 }
-
+//Изменение режима работы панели 
 void change_mode(WPANEL* wpanel, PANEL_MODE mode) {
     if(mode == FILE_LIST) {
         wpanel->mode = FILE_LIST;
@@ -64,49 +64,51 @@ void change_mode(WPANEL* wpanel, PANEL_MODE mode) {
         wpanel->mode = FILE_INFO;
     }
 }
-
+//Очитка рабочей панели 
 void free_wpanel(WPANEL* wpanel) {
-
+    free_file_panel(wpanel->fpanel);
 }
-
+//Вывод данных в файле 
 void show_file_data(WPANEL* mpanel, WPANEL* spanel, short color) {
 	wchar_t* file_name;
 	file_name = get_select_file(mpanel->fpanel);
 
-	spanel->scroll.file = open(wchtochs(file_name), O_RDONLY);
+	spanel->scroll.file = fopen(wchtochs(file_name), "r+"); //Очистка экрана 
 	werase(spanel->fpanel->panel);
     wattron(spanel->fpanel->panel, COLOR_PAIR(color));
     box(spanel->fpanel->panel, 0, 0);
     wattroff(spanel->fpanel->panel, COLOR_PAIR(color));
-	if(spanel->scroll.file == -1) {
+    if(get_n_element(mpanel->fpanel->files_info, mslct(mpanel->fpanel->file_menu))->data->file_type == DIRECTORY) {
+		mvwprintw(spanel->fpanel->panel, 1, 1, "Это каталог"); //Если это каталог 
+    }
+	else if(spanel->scroll.file == NULL) { //Открытие выбранного файла 
 		mvwprintw(spanel->fpanel->panel, 1, 1, "Не удалось открыть файл %ls", file_name);
         return;
 	} 
-    else if(get_n_element(mpanel->fpanel->files_info, mslct(mpanel->fpanel->file_menu))->data->file_type == DIRECTORY) {
-		mvwprintw(spanel->fpanel->panel, 1, 1, "Это каталог");
-    }
     else {
-		print_file_data(spanel);
+		print_file_data(spanel); //Вывод данных 
+        fclose(spanel->scroll.file);
+        wattron(spanel->fpanel->panel, COLOR_PAIR(color));
+        box(spanel->fpanel->panel, 0, 0);
+        wattroff(spanel->fpanel->panel, COLOR_PAIR(color));
 	}
     mvwprintw(spanel->fpanel->panel, 0, getmaxx(spanel->fpanel->panel) / 2 - 5, " Содержимое %ld", spanel->scroll.beg_pos);
-    close(spanel->scroll.file);
 }
-
-void scroll_file_view(WPANEL* wpanel, int key) {
+//Прокрутка информации в файле 
+void scroll_file_view(WPANEL* wpanel, int key) { 
     char* buffer = wchtochs(get_select_file(wpanel->dep->fpanel));
-    FILE* file = fopen(buffer, "r");
-    fseek(file, wpanel->scroll.beg_pos, SEEK_SET);
-    char sym; int i = 0;
-    if(key == KEY_DOWN && !wpanel->scroll.eof) {
-        while((sym = fgetc(file)) != '\n' && i < (getmaxx(wpanel->fpanel->panel) - 2)) {
+    FILE* file = fopen(buffer, "r"); //Открытие файла 
+    fseek(file, wpanel->scroll.beg_pos, SEEK_SET); //Установка позиции на место чтения 
+    wchar_t wsym; int i = 0; char sym;
+    if(key == KEY_DOWN && !wpanel->scroll.eof) { //Чтение строки вниз
+        while((wsym = getwc(file)) != L'\n' && i < (getmaxx(wpanel->fpanel->panel) - 2)) {
             i++;
-            wpanel->scroll.beg_pos++;
         }
-        wpanel->scroll.beg_pos++;
+        wpanel->scroll.beg_pos = ftell(file);
     } 
     else if(key == KEY_UP && wpanel->scroll.beg_pos != 0) {
-        fseek(file, -2, SEEK_CUR);
-        while((sym = fgetc(file)) != L'\n' && i < getmaxx(wpanel->fpanel->panel) - 2 && wpanel->scroll.beg_pos > 1) {
+        fseek(file, -2, SEEK_CUR); //Чтение строки вверх 
+        while((sym = fgetc(file)) != '\n' && i < getmaxx(wpanel->fpanel->panel) - 2 && wpanel->scroll.beg_pos > 1) {
             wpanel->scroll.beg_pos--;
             i++;
             fseek(file, -2, SEEK_CUR);
@@ -115,27 +117,27 @@ void scroll_file_view(WPANEL* wpanel, int key) {
     }
     fclose(file);
 }
-
+//Вывод данных из файла 
 void print_file_data(WPANEL* wpanel) {
-	char buffer;
+	wchar_t buffer;
 
-    lseek(wpanel->scroll.file, wpanel->scroll.beg_pos, SEEK_SET);
+    fseek(wpanel->scroll.file, wpanel->scroll.beg_pos, SEEK_SET); //Установка для чтения по текущей позиции
 	for(int y = 1; y < getmaxy(wpanel->fpanel->panel) - 1; y++) {
 		for(int x = 1; x < getmaxx(wpanel->fpanel->panel) - 1; x++) {
-			if((read(wpanel->scroll.file, &buffer, 1)) == 0) {
+			if((buffer = getwc(wpanel->scroll.file)) == WEOF) {
                 wpanel->scroll.eof = true;
 				return;
 			} 
 
-			mvwprintw(wpanel->fpanel->panel, y, x, "%c", buffer);
-			if(buffer == '\n') {
+			mvwprintw(wpanel->fpanel->panel, y, x, "%lc", buffer);
+			if(buffer == L'\n') {
 				break;
 			}
 		}
 	}
     wpanel->scroll.eof = false;
 }
-
+//Обработчик нажатий клавиатуры 
 void wkeypad_handler(WPANEL* wpanel, int key) {
     if(wpanel->mode == FILE_LIST) {
         WPANEL* dep = wpanel->mode == FILE_LIST && wpanel->dep->mode == FILE_LIST? wpanel->dep : wpanel;
@@ -148,7 +150,7 @@ void wkeypad_handler(WPANEL* wpanel, int key) {
         scroll_file_view(wpanel, key);
     }
 }
-
+//Обработчик нажатий мыши 
 void wmouse_handler(WPANEL* wpanel, MEVENT mevent) {
     if(wpanel->mode == FILE_LIST) {
         if(mouse_event_handler(wpanel->fpanel, mevent)) {
@@ -164,7 +166,7 @@ void wmouse_handler(WPANEL* wpanel, MEVENT mevent) {
         }
     }
 }
-
+//Вывод дополнительной информации о файле 
 void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel, short color) {
     wchar_t* file_name;
 	file_name = get_select_file(mpanel->fpanel);
@@ -176,13 +178,13 @@ void print_ex_finfo(WPANEL* mpanel, WPANEL* spanel, short color) {
     wattroff(spanel->fpanel->panel, COLOR_PAIR(color));
     mvwprintw(spanel->fpanel->panel, 0, getmaxx(spanel->fpanel->panel) / 2 - 5, " Информация ");
 
-	int fd = open(wchtochs(file_name), O_RDONLY);
+	int fd = open(wchtochs(file_name), O_RDONLY); //Открытие 
     if(fd == -1) {
 		mvwprintw(subwin, 0, 0, "Не удалось открыть файл %ls", file_name);
         delwin(subwin);
         return;
     }
-    struct stat st;
+    struct stat st; //Получение информации 
     if(fstat(fd, &st) == -1) {
         mvwprintw(subwin, 0, 0, "Не удалось получить информацию о %ls", file_name);
     }
