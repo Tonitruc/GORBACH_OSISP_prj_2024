@@ -26,5 +26,8 @@ typedef struct _MSG_WIN {  //Структура для создания форм
 
 MSG_BOX* init_message_box(int height, int width, wchar_t* title, wchar_t* message, bool is_verified);
 void set_color_msg(MSG_BOX* msg_box, short color_pair);
-MSG_REQ show_msg(MSG_BOX* msg);
+
+#define show_msg(msg) print_msg(msg, false);
+
+MSG_REQ print_msg(MSG_BOX* msg, bool only_show);
 void free_msg(MSG_BOX* msg);

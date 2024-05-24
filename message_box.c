@@ -30,7 +30,7 @@ void set_color_msg(MSG_BOX* msg_box, short color_pair) {  //Установка �
     wbkgd(msg_box->window, COLOR_PAIR(color_pair));
 }
 
-MSG_REQ show_msg(MSG_BOX* msg) {  //Вывод сообщения 
+MSG_REQ print_msg(MSG_BOX* msg, bool only_show) {  //Вывод сообщения 
     MENU* menu = NULL;
     if(msg->is_verified) { //Созднаия пунктов меню для подтвержединя 
         WINDOW* win = derwin(msg->window, 1, msg->width - 4, msg->height - 1, 2);
@@ -52,8 +52,9 @@ MSG_REQ show_msg(MSG_BOX* msg) {  //Вывод сообщения
         mvwprintw(msg->window, getmaxy(msg->window) - 1, 1, " Нажмите любую клавишу... ");
     }
     mvwaddwstr(msg->window, 0, (msg->width - 2) / 2 - wcslen(msg->title) / 2, msg->title);
- 
-    do {  //Обработчик нажатий сообщения 
+    
+    if(!only_show) {
+        do {  //Обработчик нажатий сообщения 
         print_menu(menu);
         wrefresh(msg->window);
         if(msg->is_verified) {
@@ -81,6 +82,7 @@ MSG_REQ show_msg(MSG_BOX* msg) {  //Вывод сообщения
             }
         }
     } while(msg->is_verified);
+    }
 
     wrefresh(msg->window);
 

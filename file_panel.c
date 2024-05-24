@@ -1008,6 +1008,8 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
 
     LIST_NODE* cpy_el = group->head;
     while(cpy_el != NULL) {
+        MSG_BOX* copy_proc = init_message_box(5, 30, L" КОПИРОВАНИЕ ", L"Копирование файлов...", false);
+        print_msg(copy_proc, true);
         size_t size = wcslen(cpy_el->data->full_path) + wcslen(cpy_el->data->file_name) + 2;
         wchar_t* copy_file = (wchar_t*)calloc(size, sizeof(wchar_t));
         swprintf(copy_file, size, L"%ls/%ls", cpy_el->data->full_path, cpy_el->data->file_name);
