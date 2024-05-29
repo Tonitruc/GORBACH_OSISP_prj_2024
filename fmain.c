@@ -422,6 +422,7 @@ void find_file(FILE_PANEL* file_panel) {
 	status = command_key_handler(menu, true);
 	if(status == KEY_F(1)) {
 		LIST_NODE* finfo = get_n_element(flist, menu->select);
+		bool is_dir = finfo->data->file_type == DIRECTORY;
 		while(finfo->data->file_type != DIRECTORY) {
 			finfo = finfo->prev;
 		}
@@ -429,7 +430,7 @@ void find_file(FILE_PANEL* file_panel) {
 		file_panel->current_directory = (wchar_t*)calloc(wcslen(finfo->data->full_path) + 1, sizeof(wchar_t));
 		wcscpy(file_panel->current_directory, finfo->data->full_path);
 		set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
-		while(wcscmp(menu->iselect->string, file_panel->file_menu->iselect->string) != 0) {
+		while(wcscmp(menu->iselect->string, file_panel->file_menu->iselect->string) != 0 && !is_dir) {
 			wkeypad_handler(wpanel, KEY_DOWN);
 		}
 	}

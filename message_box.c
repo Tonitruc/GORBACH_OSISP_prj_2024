@@ -48,11 +48,12 @@ MSG_REQ print_msg(MSG_BOX* msg, bool only_show) {  //Вывод сообщени
     int key;
     mvwaddwstr(msg->window, getmaxy(msg->window) / 2, 2, msg->message);
     box(msg->window, 0, 0);
-    if(!msg->is_verified) {
+    if(!msg->is_verified && !only_show) {
         mvwprintw(msg->window, getmaxy(msg->window) - 1, 1, " Нажмите любую клавишу... ");
     }
     mvwaddwstr(msg->window, 0, (msg->width - 2) / 2 - wcslen(msg->title) / 2, msg->title);
     
+    wrefresh(msg->window);
     if(!only_show) {
         do {  //Обработчик нажатий сообщения 
         print_menu(menu);
@@ -81,10 +82,12 @@ MSG_REQ print_msg(MSG_BOX* msg, bool only_show) {  //Вывод сообщени
                 find_click_item(menu, mevent);
             }
         }
+        else if(key == KEY_RESIZE) {
+            status = M_CANCEL;
+            break;
+        }
     } while(msg->is_verified);
     }
-
-    wrefresh(msg->window);
 
     if(msg->is_verified) {
         delwin(menu->subwin);

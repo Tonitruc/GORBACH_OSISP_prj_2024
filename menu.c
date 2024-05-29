@@ -60,7 +60,8 @@ int find_mitem(MITEM** items, wchar_t* string) {
 //Добавление элемента в меню 
 void add_item(MENU* menu, MITEM* new_item, int index) {
     menu->items = (MITEM**)realloc(menu->items, (menu->size + 2) * sizeof(MITEM*));
-
+    menu->group = (MITEM**)realloc(menu->group, (menu->size + 2) * sizeof(MITEM*));
+    clear_group(menu);
     for(int i = menu->size; i >= index; i--) {
         menu->items[i + 1] = menu->items[i];
     }
@@ -78,6 +79,8 @@ void delete_item(MENU* menu, int index) {
         menu->items[i] = menu->items[i + 1];
     }
     menu->items = (MITEM**)realloc(menu->items, menu->size * sizeof(MITEM*));
+    menu->group = (MITEM**)realloc(menu->group, menu->size * sizeof(MITEM*));
+    clear_group(menu);
 
     menu->size--;
     calc_item_coord(menu);

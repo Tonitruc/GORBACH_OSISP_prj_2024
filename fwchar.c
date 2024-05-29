@@ -115,8 +115,17 @@ bool wchstrcmp(wchar_t* sourse, wchar_t* wstr, int start, int len) {  //Пров
 }
 
 wchar_t* parse_regex_pattern(wchar_t* wpattern) {  //Парс регулярного выражения для упрощенного ввода
-    size_t size = wcslen(wpattern);
-    wchar_t* pattern = (wchar_t*)calloc(size * 2 + 1, sizeof(wchar_t));
+    size_t size; wchar_t* pattern;
+    if(wpattern == NULL || (size = wcslen(wpattern)) == 0 || (size == 1 && wpattern[0] == ' ')) {
+        pattern = (wchar_t*)calloc(3, sizeof(wchar_t));
+        pattern[0] = L'.';
+        pattern[1] = L'*';
+        pattern[2] = L'\0';
+        return pattern;
+    } else {
+        pattern = (wchar_t*)calloc(size * 2 + 1, sizeof(wchar_t));
+    }
+
     int bi = 0;
 
     if(wpattern[0] == L'*') {

@@ -219,7 +219,12 @@ FOPR cpydir(wchar_t* copy_dir, wchar_t* new_dir, int save_attr, int link) {  //�
         wchar_t* wnew_path = cstowchs(new_path);
 
         if(get_file_type(wnext_path) == DIRECTORY) {  //Если следующий файл является каталогом 
-            status = cpydir(wnext_path, wnew_path, save_attr, link);
+            wchar_t* wfname = get_file_name(copy_dir);
+            wchar_t* buffer = get_file_name(wnew_path);
+            if(wcscmp(wfname, buffer) != 0)
+                status = cpydir(wnext_path, wnew_path, save_attr, link);
+            free(wfname);
+            free(buffer);
         }
         else if(get_file_type(wnew_path) == SYMBOL_LINK && link == -1) {  //Если символьной ссылкой 
             status = cpyslnk(wnext_path, new_dir, save_attr);

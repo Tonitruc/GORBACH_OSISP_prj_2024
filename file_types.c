@@ -198,10 +198,12 @@ void rfind_files(LIST* result, char* start_dir, regex_t regex) {  //Поиск �
         free(full_path);
         free(file_name);
     }
-
-    if((result->tail) != NULL && result->tail->data->file_type == DIRECTORY) {
+    char* buffer = wchtochs(wstart_dir);
+    if((result->tail) != NULL && result->tail->data->file_type == DIRECTORY 
+        && regexec(&regex, buffer, 0, NULL, 0) != 0) {
         remove_last(result);
     }
+    free(buffer);
     closedir(dir);
 }
 
@@ -210,6 +212,7 @@ int find_files(LIST* result, wchar_t* wstart_dir, wchar_t* wpattern) { //Фун�
 
     regex_t reg;
     char* pattern = wchtochs(buffer);
+
     if(regcomp(&reg, pattern, REG_EXTENDED) != 0) {
         free(pattern);
         return -1;

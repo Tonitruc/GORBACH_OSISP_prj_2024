@@ -122,8 +122,8 @@ bool resize_file_panel(FILE_PANEL* file_panel, int num)  {
     resize_menu(file_panel->tabs_panel);
     werase(file_panel->panel);
 
-    mvwin(file_panel->tabs_menu->parwin, 5, getcurx(file_panel->panel) + 2);
-    mvwin(file_panel->tabs_menu->subwin, 6, getcurx(file_panel->panel) + 3);
+    mvwin(file_panel->tabs_menu->parwin, 5, startx + 2);
+    mvwin(file_panel->tabs_menu->subwin, 6, startx + 3);
 
     return true;
 }
@@ -241,25 +241,28 @@ wchar_t* get_file(FILE_PANEL* file_panel, int n) {
                 get_n_element(file_panel->files_info, n)->data->file_name);
     }
     else if(wcscmp(file_panel->file_menu->iselect->string, DIR_RETURN) == 0) {
-        if(wcscmp(file_panel->current_directory, L"/home") == 0) {
-            cur_file = (wchar_t*)calloc(2, sizeof(wchar_t));
-            cur_file[0] = '/'; cur_file[1] = '\0';
-        } else {
             for(int i = cur_dir_size - 1; file_panel->current_directory[i] != L'/'; i--) {
                 cur_dir_size--;
             }
-            cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
-            swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
-        }
+
+            if(cur_dir_size == 1) {
+                cur_file = (wchar_t*)calloc(2, sizeof(wchar_t));
+                cur_file[0] = '/'; cur_file[1] = '\0';
+            } else {
+                cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+                swprintf(cur_file, cur_dir_size, L"%ls", file_panel->current_directory);
+            }
     } else {
-        if(wcscmp(file_panel->file_menu->iselect->string, L"home") == 0 
-            && wcscmp(file_panel->current_directory, L"/") == 0) {
-            cur_file = (wchar_t*)calloc(6, sizeof(wchar_t));
-            swprintf(cur_file, 6, L"/home");
+        if(wcscmp(file_panel->current_directory, L"/") == 0) {
+            cur_dir_size += file_panel->file_menu->iselect->size + 1;
+            cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
+            
+            swprintf(cur_file, cur_dir_size, L"%ls%ls", file_panel->current_directory, 
+                file_panel->file_menu->iselect->string);
         } else {
             cur_dir_size += file_panel->file_menu->iselect->size + 2;
             cur_file = (wchar_t*)calloc(cur_dir_size, sizeof(wchar_t));
-
+            
             swprintf(cur_file, cur_dir_size, L"%ls/%ls", file_panel->current_directory, 
                 file_panel->file_menu->iselect->string);
         }
@@ -287,11 +290,16 @@ LIST* get_group(FILE_PANEL* file_panel) {
 }
 
 //Получение файлов текущего каталога 
-MITEM** init_files(LIST* list) {
-    MITEM **items = (MITEM**)calloc(list->size * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
+MITEM** init_files(LIST* list, FILE_PANEL* file_panel) {
+    MITEM **items;
+    if(wcscmp(file_panel->current_directory, L"/") == 0) {
+        remove_first(list); 
+    } 
+    items = (MITEM**)calloc(list->size * FILE_MENU_FORMAT_COL + 1, sizeof(MITEM*));
 
     LIST_NODE* temp = list->head;
     int num = 0;
+    int i = 0;
     while(temp != NULL) {
         for(int j = 0; j < FILE_MENU_FORMAT_COL; j++, num++) {
             if(j == 0) {
@@ -310,7 +318,7 @@ MITEM** init_files(LIST* list) {
             }
             else if(j == 1) {
                 char buffer[20];
-                sprintf(buffer, "%ld", temp->data->size_kb);
+                sprintf(buffer, "%zu", temp->data->size_kb);
                 items[num] = init_menu_item(cstowchs(buffer));    
             }
             else if(j == 2) {
@@ -343,7 +351,7 @@ MITEM** load_dir(FILE_PANEL* file_panel) {
     chdir(cur_dir);
     file_panel->files_info = list;
 
-    MITEM** list_files = init_files(list);
+    MITEM** list_files = init_files(list, file_panel);
 
     free(cur_dir);
     return list_files;
@@ -446,7 +454,7 @@ int chooce_tab(FILE_PANEL* file_panel) {
 //Сохранение вкладки 
 bool save_tab(FILE_PANEL* file_panel) {
     if(file_panel->amount_tabs == MAX_TABS) {
-        MSG_BOX* msg = init_message_box(10, 30, L"Ошибка", L"Максимум 10 влкадок", false);
+        MSG_BOX* msg = init_message_box(5, 30, L"Ошибка", L"Максимум 10 влкадок", false);
         show_msg(msg);
         return false;
     }
@@ -575,7 +583,7 @@ bool mouse_event_handler(FILE_PANEL *file_panel, MEVENT mevent) {
                     sort_list(file_panel->files_info->head->next, file_panel->files_info->tail, finfo_time_compare, file_panel->sort_dir);
                 }
                 
-                set_new_items(file_panel->file_menu, init_files(file_panel->files_info), 0);
+                set_new_items(file_panel->file_menu, init_files(file_panel->files_info, file_panel), 0);
                 unprint_menu(file_panel->file_menu);
                 print_menu(file_panel->file_menu);
             }
@@ -636,7 +644,7 @@ bool keyboard_event_handler(FILE_PANEL *file_panel, int key, FILE_PANEL* dep) {
 		}
         case '8': {
             if(file_panel->file_menu->select != 0)
-			    del_file(file_panel, true);
+			    del_file(file_panel, dep, true);
             break;
 		}
         case '4': {
@@ -715,7 +723,7 @@ FOPR file_operation_handler(FOPR status, bool atomic, wchar_t* file_name) {
     return status;
 }
 //Удаление файла 
-int del_file(FILE_PANEL* file_panel, bool access) {
+int del_file(FILE_PANEL* file_panel, FILE_PANEL* dep, bool access) {
     LIST* group = get_group(file_panel);
     LIST_NODE* del_el = group->head;
 
@@ -733,7 +741,9 @@ int del_file(FILE_PANEL* file_panel, bool access) {
     }
 
     while(del_el != NULL) {
-
+        MSG_BOX* del_proc = init_message_box(5, 30, L" УДАЛЕНИЕ ", L"Удаление файлов...", false);
+        set_color_msg(del_proc, TOP_PANEL_COLOR);
+        print_msg(del_proc, true);
         size_t size = wcslen(del_el->data->full_path) + wcslen(del_el->data->file_name) + 2;
         wchar_t* del_file = (wchar_t*)calloc(size, sizeof(wchar_t));
         swprintf(del_file, size, L"%ls/%ls", del_el->data->full_path, del_el->data->file_name);
@@ -743,6 +753,9 @@ int del_file(FILE_PANEL* file_panel, bool access) {
             status = delete_file(del_file, is_dir);
             if(file_operation_handler(status, true, del_el->data->file_name)) {
                 set_new_items(file_panel->file_menu, load_dir(file_panel), 0);
+                if(wcscmp(file_panel->current_directory, dep->current_directory) == 0) {
+                    set_new_items(dep->file_menu, load_dir(dep), 0);
+                }
             } else {
                 free(del_file);
                 break;
@@ -1009,6 +1022,7 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
     LIST_NODE* cpy_el = group->head;
     while(cpy_el != NULL) {
         MSG_BOX* copy_proc = init_message_box(5, 30, L" КОПИРОВАНИЕ ", L"Копирование файлов...", false);
+        set_color_msg(copy_proc, TOP_PANEL_COLOR);
         print_msg(copy_proc, true);
         size_t size = wcslen(cpy_el->data->full_path) + wcslen(cpy_el->data->file_name) + 2;
         wchar_t* copy_file = (wchar_t*)calloc(size, sizeof(wchar_t));
@@ -1017,7 +1031,7 @@ bool copy_files(FILE_PANEL* file_panel, FILE_PANEL* dep, wchar_t* title) {
         wchar_t* new_file = (wchar_t*)calloc(size, sizeof(wchar_t));
         swprintf(new_file, size, L"%ls/%ls", new_dir, cpy_el->data->file_name);
             if(get_file_type(copy_file) == DIRECTORY) {
-                status = cpydir(copy_file, new_file, save_attr, link);
+                    status = cpydir(copy_file, new_file, save_attr, link);
             }
             else if(get_file_type(copy_file) == SYMBOL_LINK && link == -1) {
                 status = cpyslnk(copy_file, new_dir, save_attr);
@@ -1053,7 +1067,7 @@ bool move_fiels(FILE_PANEL* file_panel, FILE_PANEL* dep) {
     int status = -1;
     status = copy_files(file_panel, dep, L" ПЕРЕМЕЩЕНИЕ ");
     if(status == 1) {
-        status = del_file(file_panel, false); 
+        status = del_file(file_panel, dep, false); 
     }
     return status;
 }
